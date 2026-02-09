@@ -1,0 +1,31 @@
+{
+  "mcpServers": {
+    "atlassian": {
+      "type": "sse",
+      "url": "https://mcp.atlassian.com/v1/sse"
+    },
+    "sentry": {
+      "type": "http",
+      "url": "https://mcp.sentry.dev/mcp"
+    },
+    "linear": {
+      "type": "http",
+      "url": "https://mcp.linear.app/mcp"
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "ctx7sk-2c5a054b-7cc8-45ac-b784-5a6b3ca16a73"
+      }
+    },
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "@playwright/mcp@latest"
+      ],
+      "env": {}
+    }
+  }
+}

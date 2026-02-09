@@ -1,0 +1,12 @@
+{
+  "name": "corjl-fabricon-backend",
+  "version": "1.0.0",
+  "description": "Amplify Gen 2 backend for Fabricon design platform",
+  "type": "module",
+  "exports": {
+    ".": "./backend.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
