@@ -55,8 +55,17 @@ const router = createRouter({
 })
 
 // Navigation guard for authentication
-router.beforeEach((to, _from, next) => {
+// Note: initializeAuth() is awaited in main.ts before the app mounts,
+// so isInitialized is always true when guards run. The check below
+// is a safety net for edge cases (e.g., lazy-loaded route navigations).
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+
+  // Wait for auth initialization if it hasn't completed yet
+  if (!authStore.isInitialized) {
+    await authStore.initializeAuth()
+  }
+
   const requiresAuth = to.meta.requiresAuth !== false
 
   if (requiresAuth && !authStore.isAuthenticated) {
