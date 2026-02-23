@@ -16,7 +16,7 @@ describe('BaseButton.vue', () => {
     const wrapper = mount(BaseButton, {
       slots: { default: 'Button' },
     })
-    expect(wrapper.element.getAttribute('class')).toContain('bg-blue-500')
+    expect(wrapper.element.getAttribute('class')).toContain('bg-primary')
   })
 
   it('applies secondary variant when specified', () => {
@@ -24,7 +24,7 @@ describe('BaseButton.vue', () => {
       props: { variant: 'secondary' },
       slots: { default: 'Button' },
     })
-    expect(wrapper.element.getAttribute('class')).toContain('bg-gray-200')
+    expect(wrapper.element.getAttribute('class')).toContain('bg-surface-2')
   })
 
   it('applies danger variant when specified', () => {
@@ -32,7 +32,7 @@ describe('BaseButton.vue', () => {
       props: { variant: 'danger' },
       slots: { default: 'Button' },
     })
-    expect(wrapper.element.getAttribute('class')).toContain('bg-red-500')
+    expect(wrapper.element.getAttribute('class')).toContain('bg-cta')
   })
 
   it('disables button when disabled prop is true', () => {

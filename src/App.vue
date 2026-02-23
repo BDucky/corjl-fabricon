@@ -1,7 +1,9 @@
 <template>
-  <div id="app" class="editor-container">
-    <RouterView />
-  </div>
+  <RouterView v-slot="{ Component, route }">
+    <Transition :name="(route.meta.transition as string) || 'page-fade'" mode="out-in">
+      <component :is="Component" :key="route.path" />
+    </Transition>
+  </RouterView>
 </template>
 
 <script setup lang="ts">
@@ -13,20 +15,10 @@ const router = useRouter()
 const authStore = useAuthStore()
 
 onMounted(async () => {
-  // Initialize auth on app load
   await authStore.initializeAuth()
 
-  // Redirect to login if not authenticated and not on login page
-  if (!authStore.isAuthenticated && router.currentRoute.value.path !== '/login') {
+  if (!authStore.isAuthenticated && router.currentRoute.value.path !== '/login' && router.currentRoute.value.path !== '/signup') {
     router.push('/login')
   }
 })
 </script>
-
-<style scoped>
-#app {
-  width: 100%;
-  height: 100vh;
-  overflow: hidden;
-}
-</style>
