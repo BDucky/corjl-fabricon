@@ -2,6 +2,39 @@
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
+/* ─── CSS Custom Properties ─── */
+:root {
+  --color-primary: #086674;
+  --color-primary-dark: #064e5a;
+  --color-primary-light: #0a8a9c;
+  --color-accent: #F5B461;
+  --color-accent-hover: #e3a64f;
+  --color-cta: #d63e36;
+
+  --surface-ground: hsl(225, 15%, 8%);
+  --surface-0: hsl(225, 14%, 11%);
+  --surface-1: hsl(225, 13%, 15%);
+  --surface-2: hsl(225, 12%, 19%);
+  --surface-3: hsl(225, 11%, 24%);
+  --surface-4: hsl(225, 10%, 30%);
+
+  --border-subtle: hsl(225, 10%, 20%);
+  --border-default: hsl(225, 10%, 26%);
+  --border-strong: hsl(225, 10%, 35%);
+
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0b0;
+  --text-muted: #6b6b80;
+  --text-inverse: #111;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+}
+
+/* ─── Base Reset ─── */
 * {
   box-sizing: border-box;
 }
@@ -10,37 +43,199 @@ html,
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Rubik', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+    'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #fff;
+  background-color: var(--surface-ground);
+  color: var(--text-primary);
 }
 
 #app {
   width: 100%;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
 }
 
-/* Editor specific styles */
+/* ─── Glassmorphism Utilities ─── */
+@layer components {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-lg);
+  }
+
+  .glass-panel--elevated {
+    background: rgba(255, 255, 255, 0.07);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ─── Vue Transition: page-fade ─── */
+.page-fade-enter-active,
+.page-fade-leave-active {
+  transition: opacity 0.25s ease;
+}
+
+.page-fade-enter-from,
+.page-fade-leave-to {
+  opacity: 0;
+}
+
+/* ─── Vue Transition: zoom-fade ─── */
+.zoom-fade-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.zoom-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.zoom-fade-enter-from {
+  opacity: 0;
+  transform: scale(0.95);
+}
+
+.zoom-fade-leave-to {
+  opacity: 0;
+  transform: scale(1.02);
+}
+
+/* ─── Vue Transition: panel-slide-left ─── */
+.panel-slide-left-enter-active,
+.panel-slide-left-leave-active {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.panel-slide-left-enter-from {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+
+.panel-slide-left-leave-to {
+  transform: translateX(20px);
+  opacity: 0;
+}
+
+/* ─── Vue Transition: panel-slide-right ─── */
+.panel-slide-right-enter-active,
+.panel-slide-right-leave-active {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+}
+
+.panel-slide-right-enter-from {
+  transform: translateX(20px);
+  opacity: 0;
+}
+
+.panel-slide-right-leave-to {
+  transform: translateX(-20px);
+  opacity: 0;
+}
+
+/* ─── Skeleton Loading ─── */
+@layer components {
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      var(--surface-1) 25%,
+      var(--surface-2) 50%,
+      var(--surface-1) 75%
+    );
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.8s ease-in-out infinite;
+    border-radius: var(--radius-md);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ─── 3D Cube Loader ─── */
+@keyframes cube-spin {
+  0% { transform: rotateX(0deg) rotateY(0deg); }
+  50% { transform: rotateX(180deg) rotateY(90deg); }
+  100% { transform: rotateX(360deg) rotateY(360deg); }
+}
+
+.loader-cube {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  transform-style: preserve-3d;
+  animation: cube-spin 2s ease-in-out infinite;
+}
+
+.loader-cube__face {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--color-accent);
+  background: rgba(245, 180, 97, 0.15);
+  border-radius: 4px;
+}
+
+.loader-cube__face--front { transform: translateZ(20px); }
+.loader-cube__face--back { transform: rotateY(180deg) translateZ(20px); }
+.loader-cube__face--right { transform: rotateY(90deg) translateZ(20px); }
+.loader-cube__face--left { transform: rotateY(-90deg) translateZ(20px); }
+.loader-cube__face--top { transform: rotateX(90deg) translateZ(20px); }
+.loader-cube__face--bottom { transform: rotateX(-90deg) translateZ(20px); }
+
+/* ─── Editor-specific styles ─── */
 .editor-container {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--color-editor-bg, #1e1e1e);
-  color: var(--color-editor-text, #e0e0e0);
+  background-color: var(--surface-ground);
+  color: var(--text-primary);
 }
 
 .editor-panel {
-  background-color: var(--color-editor-panel, #2d2d2d);
-  border: 1px solid var(--color-editor-border, #404040);
+  background-color: var(--surface-1);
+  border: 1px solid var(--border-default);
 }
 
-/* Safe area utilities for mobile */
+/* ─── Canvas utilities ─── */
+.fabric-canvas {
+  border: 1px solid var(--border-default);
+  background-color: #fff;
+}
+
+.three-viewer {
+  border: 1px solid var(--border-default);
+  background-color: #222;
+}
+
+/* ─── Scrollbar (Corjl teal) ─── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-0);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-light);
+}
+
+/* ─── Safe area utilities for mobile ─── */
 @supports (padding: max(0px)) {
-  body {
+  .safe-area-padded {
     padding-left: max(12px, env(safe-area-inset-left));
     padding-right: max(12px, env(safe-area-inset-right));
     padding-top: max(0px, env(safe-area-inset-top));
@@ -48,32 +243,45 @@ body {
   }
 }
 
-/* Canvas utilities */
-.fabric-canvas {
-  border: 1px solid var(--color-editor-border, #404040);
-  background-color: #fff;
+/* ─── Viewport Transition (2D ↔ 3D) ─── */
+.viewport-transition-enter-active,
+.viewport-transition-leave-active {
+  transition: filter 0.4s ease, opacity 0.4s ease;
 }
 
-.three-viewer {
-  border: 1px solid var(--color-editor-border, #404040);
-  background-color: #222;
+.viewport-transition-enter-from,
+.viewport-transition-leave-to {
+  filter: blur(8px);
+  opacity: 0;
 }
 
-/* Scrollbar styling */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+/* ─── Toast Animation ─── */
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: var(--color-editor-panel, #2d2d2d);
+@keyframes toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.96);
+  }
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--color-editor-border, #404040);
-  border-radius: 4px;
+.toast-enter-active {
+  animation: toast-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #555;
+.toast-leave-active {
+  animation: toast-out 0.2s ease-in forwards;
 }

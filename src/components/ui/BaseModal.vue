@@ -1,38 +1,38 @@
 <template>
   <Teleport to="body">
     <Transition name="modal">
-      <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center">
-        <!-- Backdrop -->
+      <div v-if="isOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Backdrop (glassmorphism) -->
         <div
-          class="absolute inset-0 bg-black bg-opacity-50 transition-opacity"
+          class="absolute inset-0 bg-black/60 backdrop-blur-sm"
           @click="closeModal"
         />
 
         <!-- Modal Content -->
-        <div class="relative bg-white rounded-lg shadow-lg max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="relative glass-panel--elevated w-full max-w-md max-h-[90vh] overflow-y-auto">
           <!-- Header -->
-          <div v-if="title || closeable" class="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 v-if="title" class="text-lg font-semibold text-gray-900">
+          <div v-if="title || closeable" class="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
+            <h2 v-if="title" class="text-lg font-semibold text-[var(--text-primary)]">
               {{ title }}
             </h2>
             <button
               v-if="closeable"
-              class="text-gray-500 hover:text-gray-700 transition-colors"
+              class="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-fast p-1 rounded-lg hover:bg-surface-2"
               @click="closeModal"
             >
-              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
 
           <!-- Body -->
-          <div class="p-4">
+          <div class="p-5">
             <slot />
           </div>
 
           <!-- Footer -->
-          <div v-if="$slots.footer" class="flex gap-2 p-4 border-t border-gray-200">
+          <div v-if="$slots.footer" class="flex gap-3 p-5 border-t border-[var(--border-subtle)]">
             <slot name="footer" />
           </div>
         </div>
@@ -52,23 +52,47 @@ withDefaults(defineProps<Props>(), {
   closeable: true,
 })
 
-defineEmits<{
+const emit = defineEmits<{
   close: []
 }>()
 
 const closeModal = () => {
-  // Let parent handle the close
+  emit('close')
 }
 </script>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
+.modal-enter-active {
   transition: opacity 0.3s ease;
 }
 
-.modal-enter-from,
+.modal-enter-active > .glass-panel--elevated {
+  transition: opacity 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.modal-leave-active > .glass-panel--elevated {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.modal-enter-from {
+  opacity: 0;
+}
+
+.modal-enter-from > .glass-panel--elevated {
+  opacity: 0;
+  transform: scale(0.92);
+}
+
 .modal-leave-to {
   opacity: 0;
+}
+
+.modal-leave-to > .glass-panel--elevated {
+  opacity: 0;
+  transform: scale(0.96);
 }
 </style>

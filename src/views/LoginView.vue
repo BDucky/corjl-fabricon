@@ -1,17 +1,25 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-    <div class="w-full max-w-md space-y-8">
-      <div>
-        <h2 class="text-center text-3xl font-extrabold text-gray-900">
-          Sign in to Fabricon
-        </h2>
+  <div class="min-h-screen flex items-center justify-center bg-surface-ground px-4">
+    <!-- Background gradient -->
+    <div class="fixed inset-0 bg-gradient-to-br from-primary-dark/30 via-surface-ground to-surface-ground pointer-events-none" />
+
+    <div class="relative w-full max-w-md animate-scale-in">
+      <!-- Logo -->
+      <div class="mb-8">
+        <CorjlLogo size="lg" centered />
       </div>
-      <form class="mt-8 space-y-6" @submit.prevent="handleLogin">
-        <div class="rounded-md shadow-sm -space-y-px">
+
+      <!-- Glass card -->
+      <div class="glass-panel--elevated p-8">
+        <h2 class="text-center text-xl font-semibold text-[var(--text-primary)] mb-6">
+          Sign in to your account
+        </h2>
+
+        <form class="space-y-5" @submit.prevent="handleLogin">
           <BaseInput
             v-model="form.email"
             type="email"
-            placeholder="Email address"
+            placeholder="you@example.com"
             label="Email"
             required
             :error="errors.email"
@@ -20,40 +28,41 @@
           <BaseInput
             v-model="form.password"
             type="password"
-            placeholder="Password"
+            placeholder="Your password"
             label="Password"
             required
             :error="errors.password"
             @blur="validateField('password')"
           />
-        </div>
 
-        <div v-if="error" class="rounded-md bg-red-50 p-4">
-          <p class="text-sm font-medium text-red-800">
-            {{ error }}
-          </p>
-        </div>
+          <div v-if="error" class="rounded-[var(--radius-md)] bg-cta/10 border border-cta/20 p-3">
+            <p class="text-sm font-medium text-cta">
+              {{ error }}
+            </p>
+          </div>
 
-        <div>
           <BaseButton
             type="submit"
             variant="primary"
-            class="w-full"
+            full-width
             :is-loading="isLoading"
           >
             Sign in
           </BaseButton>
-        </div>
 
-        <div class="text-center">
-          <p class="text-sm text-gray-600">
-            Don't have an account?
-            <RouterLink to="/signup" class="font-medium text-blue-600 hover:text-blue-500">
-              Sign up
-            </RouterLink>
-          </p>
-        </div>
-      </form>
+          <div class="text-center">
+            <p class="text-sm text-[var(--text-muted)]">
+              Don't have an account?
+              <RouterLink
+                to="/signup"
+                class="font-medium text-accent hover:text-accent-hover transition-colors"
+              >
+                Sign up
+              </RouterLink>
+            </p>
+          </div>
+        </form>
+      </div>
     </div>
   </div>
 </template>
@@ -64,6 +73,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
 import BaseInput from '@components/ui/BaseInput.vue'
 import BaseButton from '@components/ui/BaseButton.vue'
+import CorjlLogo from '@components/ui/CorjlLogo.vue'
 
 const router = useRouter()
 const authStore = useAuthStore()
