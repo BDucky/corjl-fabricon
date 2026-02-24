@@ -109,6 +109,33 @@ export const BUNDLED_MODELS: ModelInfo[] = [
     targetMaterialNames: ['material'],
     bundled: true,
   },
+  {
+    id: 'coffeemug',
+    name: 'Coffee Mug',
+    url: '/models/coffeeMug.glb',
+    thumbnailUrl: '',
+    targetMeshNames: ['Mesh.Mug_White Mug_0'],
+    targetMaterialNames: ['White_Mug'],
+    bundled: true,
+  },
+  {
+    id: 'cardboardbox',
+    name: 'Cardboard Box',
+    url: '/models/cardboardBox.glb',
+    thumbnailUrl: '',
+    targetMeshNames: ['Box_Material_0', 'Box.Big_Material_0', 'Box.Small_Material_0'],
+    targetMaterialNames: ['Material'],
+    bundled: true,
+  },
+  {
+    id: 'standee',
+    name: 'Standee',
+    url: '/models/standee.glb',
+    thumbnailUrl: '',
+    targetMeshNames: [],
+    targetMaterialNames: ['material'],
+    bundled: true,
+  },
 ]
 
 export const DEFAULT_TEXTURE_MAPPING: TextureMappingConfig = {
