@@ -99,3 +99,34 @@ export interface ExportAngle {
   position: [number, number, number]
   target: [number, number, number]
 }
+
+// Feature 1: HDRI Environment Reflections
+export type EnvironmentPresetId = 'studio' | 'outdoor' | 'warehouse' | 'sunset' | 'neutral'
+
+export interface EnvironmentPreset {
+  id: EnvironmentPresetId
+  name: string
+  description: string
+}
+
+// Feature 2: Product Scene Staging
+export type SceneStagingPresetId = 'none' | 'studio-sweep' | 'wooden-table' | 'marble-surface' | 'fabric-backdrop' | 'gradient-sweep'
+
+export interface SceneStagingPreset {
+  id: SceneStagingPresetId
+  name: string
+}
+
+// Feature 4: Turntable GIF Export
+export interface TurntableExportOptions {
+  frameCount?: number
+  frameDelay?: number
+}
+
+// Feature 5: Batch Product Preview Grid
+export interface BatchPreviewItem {
+  modelId: string
+  modelName: string
+  imageDataUrl: string | null
+  status: 'pending' | 'rendering' | 'done' | 'error'
+}

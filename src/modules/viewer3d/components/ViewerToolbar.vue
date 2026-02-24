@@ -32,6 +32,22 @@
       </svg>
     </button>
 
+    <!-- Print area overlay -->
+    <button
+      :class="[
+        'p-1.5 rounded-lg transition-colors',
+        store.showPrintArea
+          ? 'text-primary-light bg-primary/20'
+          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-1',
+      ]"
+      title="Print area (A)"
+      @click="store.togglePrintArea()"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-dasharray="3 2">
+        <rect x="3" y="3" width="18" height="18" rx="1" stroke-width="2" />
+      </svg>
+    </button>
+
     <div class="w-px h-4 bg-[var(--border-subtle)] mx-1" />
 
     <!-- Export -->
@@ -44,6 +60,17 @@
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
       </svg>
     </button>
+
+    <!-- Batch preview -->
+    <button
+      class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-1 transition-colors"
+      title="Batch Preview"
+      @click="$emit('batchPreview')"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+      </svg>
+    </button>
   </div>
 </template>
 
@@ -54,5 +81,6 @@ const store = useViewer3dStore()
 
 defineEmits<{
   export: []
+  batchPreview: []
 }>()
 </script>

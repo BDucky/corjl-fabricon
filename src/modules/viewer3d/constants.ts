@@ -1,4 +1,4 @@
-import type { LightingPreset, CameraPreset, ModelInfo, TextureMappingConfig, ExportSettings, AspectRatioProfile, ProductColorPreset, ExportAngle, ModelTextureDefaults } from './types'
+import type { LightingPreset, CameraPreset, ModelInfo, TextureMappingConfig, ExportSettings, AspectRatioProfile, ProductColorPreset, ExportAngle, ModelTextureDefaults, EnvironmentPreset, SceneStagingPreset } from './types'
 
 export const LIGHTING_PRESETS: LightingPreset[] = [
   {
@@ -261,3 +261,35 @@ export const EXPORT_ANGLES: ExportAngle[] = [
   { id: 'top-angle', name: 'Top Angle', position: [1.5, 3, 1.5], target: [0, 0, 0] },
   { id: 'low-angle', name: 'Low Angle', position: [1.5, -0.5, 2.5], target: [0, 0.5, 0] },
 ]
+
+// Feature 1: HDRI Environment Presets
+export const ENVIRONMENT_PRESETS: EnvironmentPreset[] = [
+  { id: 'studio', name: 'Studio', description: 'Soft studio lighting with reflective panels' },
+  { id: 'outdoor', name: 'Outdoor', description: 'Blue sky with bright sun' },
+  { id: 'warehouse', name: 'Warehouse', description: 'Industrial space with ceiling lights' },
+  { id: 'sunset', name: 'Sunset', description: 'Warm orange-pink horizon glow' },
+  { id: 'neutral', name: 'Neutral', description: 'Uniform mid-grey for clean reflections' },
+]
+
+// Feature 2: Scene Staging Presets
+export const SCENE_STAGING_PRESETS: SceneStagingPreset[] = [
+  { id: 'none', name: 'None' },
+  { id: 'studio-sweep', name: 'Studio Sweep' },
+  { id: 'wooden-table', name: 'Wooden Table' },
+  { id: 'marble-surface', name: 'Marble Surface' },
+  { id: 'fabric-backdrop', name: 'Fabric Backdrop' },
+  { id: 'gradient-sweep', name: 'Gradient Sweep' },
+]
+
+// Feature 4: Turntable GIF Export
+export const TURNTABLE_FRAME_COUNTS = [
+  { label: '24', value: 24 },
+  { label: '36', value: 36 },
+  { label: '48', value: 48 },
+] as const
+
+export const TURNTABLE_SPEEDS = [
+  { label: 'Slow', delay: 120 },
+  { label: 'Normal', delay: 80 },
+  { label: 'Fast', delay: 50 },
+] as const

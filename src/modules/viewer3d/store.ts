@@ -3,11 +3,14 @@ import { ref, computed } from 'vue'
 import type {
   LightingPresetId,
   CameraPresetId,
+  EnvironmentPresetId,
+  SceneStagingPresetId,
   ModelInfo,
   TextureMappingConfig,
   ExportSettings,
   DesignInput,
   ProductSuggestion,
+  TurntableExportOptions,
 } from './types'
 import {
   BUNDLED_MODELS,
@@ -41,6 +44,20 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
 
   // Product color state
   const productColor = ref('#ffffff')
+
+  // Environment map state (Feature 1)
+  const environmentPresetId = ref<EnvironmentPresetId | null>(null)
+  const environmentIntensity = ref(1.0)
+
+  // Scene staging state (Feature 2)
+  const sceneStagingPresetId = ref<SceneStagingPresetId>('none')
+
+  // Print area overlay state (Feature 3)
+  const showPrintArea = ref(false)
+
+  // Turntable GIF state (Feature 4)
+  const turntableFrameCount = ref(36)
+  const turntableFrameDelay = ref(80)
 
   // Texture state
   const textureUrl = ref<string | null>(null)
@@ -228,6 +245,27 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     productColor.value = color
   }
 
+  function setEnvironmentPreset(id: EnvironmentPresetId | null) {
+    environmentPresetId.value = id
+  }
+
+  function setEnvironmentIntensity(val: number) {
+    environmentIntensity.value = val
+  }
+
+  function setSceneStagingPreset(id: SceneStagingPresetId) {
+    sceneStagingPresetId.value = id
+  }
+
+  function togglePrintArea() {
+    showPrintArea.value = !showPrintArea.value
+  }
+
+  function setTurntableSettings(opts: TurntableExportOptions) {
+    if (opts.frameCount !== undefined) turntableFrameCount.value = opts.frameCount
+    if (opts.frameDelay !== undefined) turntableFrameDelay.value = opts.frameDelay
+  }
+
   function setDesignFromFile(file: File): Promise<DesignInput> {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith('image/')) {
@@ -301,6 +339,12 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     autoRotate.value = false
     showGroundShadow.value = true
     productColor.value = '#ffffff'
+    environmentPresetId.value = null
+    environmentIntensity.value = 1.0
+    sceneStagingPresetId.value = 'none'
+    showPrintArea.value = false
+    turntableFrameCount.value = 36
+    turntableFrameDelay.value = 80
     textureMappingConfig.value = { ...DEFAULT_TEXTURE_MAPPING }
     exportSettings.value = { ...DEFAULT_EXPORT_SETTINGS }
     isExporting.value = false
@@ -322,6 +366,12 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     autoRotate,
     showGroundShadow,
     productColor,
+    environmentPresetId,
+    environmentIntensity,
+    sceneStagingPresetId,
+    showPrintArea,
+    turntableFrameCount,
+    turntableFrameDelay,
     textureUrl,
     textureMappingConfig,
     exportSettings,
@@ -351,6 +401,11 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     setExportSettings,
     setModelLoading,
     setProductColor,
+    setEnvironmentPreset,
+    setEnvironmentIntensity,
+    setSceneStagingPreset,
+    togglePrintArea,
+    setTurntableSettings,
     setDesignFromFile,
     setDesignFromUrl,
     clearDesign,

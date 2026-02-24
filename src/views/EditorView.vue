@@ -61,7 +61,10 @@
           </div>
 
           <!-- 3D toolbar controls -->
-          <ViewerToolbar @export="showExportDialog = true" />
+          <ViewerToolbar
+            @export="showExportDialog = true"
+            @batch-preview="showBatchPreview = true"
+          />
         </div>
 
         <!-- 3D Canvas -->
@@ -87,6 +90,13 @@
       @close="showExportDialog = false"
       @confirm="doExport"
       @export-all-angles="doExportAllAngles"
+      @export-turntable-gif="doExportTurntableGif"
+    />
+
+    <!-- Batch preview modal -->
+    <BatchPreviewModal
+      :is-open="showBatchPreview"
+      @close="showBatchPreview = false"
     />
   </div>
 </template>
@@ -100,12 +110,14 @@ import {
   ViewerPropertiesPanel,
   ViewerToolbar,
   ExportDialog,
+  BatchPreviewModal,
 } from '@modules/viewer3d'
 import { useURLParams } from '@modules/viewer3d/composables/useURLParams'
 
 const showLeftPanel = ref(true)
 const showRightPanel = ref(true)
 const showExportDialog = ref(false)
+const showBatchPreview = ref(false)
 const threeViewerRef = ref<InstanceType<typeof ThreeViewer> | null>(null)
 
 // Initialize URL params integration
@@ -119,5 +131,10 @@ const doExport = () => {
 const doExportAllAngles = () => {
   showExportDialog.value = false
   threeViewerRef.value?.exportAllAngles()
+}
+
+const doExportTurntableGif = () => {
+  showExportDialog.value = false
+  threeViewerRef.value?.exportTurntableGif()
 }
 </script>

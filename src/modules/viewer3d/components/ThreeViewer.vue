@@ -42,6 +42,10 @@ import { useExporter } from '../composables/useExporter'
 import { useProductMaterial } from '../composables/useProductMaterial'
 import { useMultiAngleExport } from '../composables/useMultiAngleExport'
 import { useDesignDrag } from '../composables/useDesignDrag'
+import { useEnvironmentMap } from '../composables/useEnvironmentMap'
+import { useSceneStaging } from '../composables/useSceneStaging'
+import { usePrintAreaOverlay } from '../composables/usePrintAreaOverlay'
+import { useTurntableExport } from '../composables/useTurntableExport'
 import LoadingOverlay from './LoadingOverlay.vue'
 
 const store = useViewer3dStore()
@@ -72,7 +76,16 @@ useDesignDrag(
   () => controls.value,
   () => currentModel.value,
 )
+useEnvironmentMap(() => scene.value, () => renderer.value)
+const { updateFloorLevel: updateStagingFloor } = useSceneStaging(() => scene.value)
+usePrintAreaOverlay(() => currentModel.value)
 const { exportAllAngles } = useMultiAngleExport(
+  () => renderer.value,
+  () => scene.value,
+  () => camera.value,
+  () => controls.value,
+)
+const { exportTurntableGif } = useTurntableExport(
   () => renderer.value,
   () => scene.value,
   () => camera.value,
@@ -115,6 +128,7 @@ function updateFloorPosition(model: THREE.Object3D) {
   if (groundFade) groundFade.position.y = bottomY - 0.001
 
   groundShadow.updateGroundPosition(bottomY)
+  updateStagingFloor(bottomY)
 }
 
 // Reposition floor elements whenever a new model is loaded
@@ -152,6 +166,7 @@ onMounted(() => {
 defineExpose({
   exportImage,
   exportAllAngles,
+  exportTurntableGif,
   getCanvas,
   cameraPresets,
 })

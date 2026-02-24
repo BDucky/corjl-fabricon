@@ -13,6 +13,9 @@
     <!-- Lighting -->
     <LightingPresetSelector />
 
+    <!-- Environment -->
+    <EnvironmentPresetSelector />
+
     <!-- Camera -->
     <CameraPresetBar />
 
@@ -31,6 +34,9 @@
         <span class="text-xs text-[var(--text-secondary)]">{{ store.backgroundColor }}</span>
       </div>
     </div>
+
+    <!-- Scene Staging -->
+    <SceneStagingSelector />
   </div>
 </template>
 
@@ -39,7 +45,9 @@ import { useViewer3dStore } from '../store'
 import ProductColorPicker from './ProductColorPicker.vue'
 import DesignPlacementControls from './DesignPlacementControls.vue'
 import LightingPresetSelector from './LightingPresetSelector.vue'
+import EnvironmentPresetSelector from './EnvironmentPresetSelector.vue'
 import CameraPresetBar from './CameraPresetBar.vue'
+import SceneStagingSelector from './SceneStagingSelector.vue'
 
 const store = useViewer3dStore()
 </script>
