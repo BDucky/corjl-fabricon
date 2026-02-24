@@ -58,10 +58,23 @@ export function useModelLoader(
     return model
   }
 
+  /** Target size: models are normalized so their largest dimension equals this value */
+  const TARGET_SIZE = 2
+
   function centerAndSetupModel(model: THREE.Group) {
+    // 1. Compute original bounding box and normalize scale
     const box = new THREE.Box3().setFromObject(model)
-    const center = box.getCenter(new THREE.Vector3())
-    model.position.sub(center)
+    const size = box.getSize(new THREE.Vector3())
+    const maxDim = Math.max(size.x, size.y, size.z)
+    if (maxDim > 0) {
+      const scale = TARGET_SIZE / maxDim
+      model.scale.multiplyScalar(scale)
+    }
+
+    // 2. Recompute bounding box after scaling, then center at origin
+    const scaledBox = new THREE.Box3().setFromObject(model)
+    const scaledCenter = scaledBox.getCenter(new THREE.Vector3())
+    model.position.sub(scaledCenter)
 
     model.traverse((child) => {
       if (child instanceof THREE.Mesh) {

@@ -7,8 +7,10 @@ export interface ModelInfo {
   name: string
   url: string
   thumbnailUrl: string
-  /** Mesh names that should receive the user's texture */
+  /** Node/mesh names that should receive the user's texture */
   targetMeshNames: string[]
+  /** Material names that should receive the user's texture (used when mesh names are generic) */
+  targetMaterialNames?: string[]
   bundled: boolean
 }
 

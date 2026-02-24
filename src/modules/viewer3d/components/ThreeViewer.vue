@@ -84,6 +84,28 @@ function addSceneEnvironment(s: THREE.Scene) {
   s.add(groundPlane)
 }
 
+/** Reposition grid, ground fade, and ground shadow to sit beneath the loaded model */
+function updateFloorPosition(model: THREE.Object3D) {
+  const s = scene.value
+  if (!s) return
+
+  const box = new THREE.Box3().setFromObject(model)
+  const bottomY = box.min.y - 0.01
+
+  const grid = s.getObjectByName('__grid__')
+  if (grid) grid.position.y = bottomY
+
+  const groundFade = s.getObjectByName('__ground_fade__')
+  if (groundFade) groundFade.position.y = bottomY - 0.001
+
+  groundShadow.updateGroundPosition(bottomY)
+}
+
+// Reposition floor elements whenever a new model is loaded
+watch(currentModel, (model) => {
+  if (model) updateFloorPosition(model)
+})
+
 // Watch background color
 watch(
   () => store.backgroundColor,

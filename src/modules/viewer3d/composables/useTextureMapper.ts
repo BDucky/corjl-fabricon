@@ -9,6 +9,22 @@ export function useTextureMapper(
   const textureLoader = new THREE.TextureLoader()
   let currentTexture: THREE.Texture | null = null
 
+  function isTargetMesh(child: THREE.Mesh, targetMeshNames: string[], targetMaterialNames: string[]): boolean {
+    // No targets specified — match all
+    if (targetMeshNames.length === 0 && targetMaterialNames.length === 0) return true
+
+    // Match by node/mesh name
+    if (targetMeshNames.includes(child.name)) return true
+
+    // Match by material name
+    if (targetMaterialNames.length > 0) {
+      const mat = child.material as THREE.MeshStandardMaterial
+      if (mat?.name && targetMaterialNames.includes(mat.name)) return true
+    }
+
+    return false
+  }
+
   function applyTextureToMeshes(texture: THREE.Texture | null) {
     const model = getCurrentModel()
     if (!model) return
@@ -16,15 +32,14 @@ export function useTextureMapper(
     const activeModel = store.activeModel
     if (!activeModel) return
 
-    const targetNames = activeModel.targetMeshNames
+    const targetMeshNames = activeModel.targetMeshNames
+    const targetMaterialNames = activeModel.targetMaterialNames ?? []
     let applied = false
 
     model.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return
 
-      // Apply to target meshes, or to all meshes if no targets specified
-      const isTarget = targetNames.length === 0 || targetNames.includes(child.name)
-      if (!isTarget) return
+      if (!isTargetMesh(child, targetMeshNames, targetMaterialNames)) return
 
       const material = child.material as THREE.MeshStandardMaterial
       if (!material.isMeshStandardMaterial) return
@@ -38,7 +53,7 @@ export function useTextureMapper(
       material.needsUpdate = true
     })
 
-    // If no meshes matched by name, apply to all meshes as fallback
+    // If no meshes matched, apply to all meshes as fallback
     if (!applied && texture) {
       model.traverse((child) => {
         if (!(child instanceof THREE.Mesh)) return
