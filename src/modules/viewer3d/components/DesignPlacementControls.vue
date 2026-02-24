@@ -12,12 +12,11 @@
       </div>
       <input
         type="range"
-        min="0.1"
-        max="5"
-        step="0.1"
-        :value="store.textureMappingConfig.repeatX"
+        min="-2"
+        max="2"
+        step="0.01"
+        v-model.number="repeatX"
         class="w-full accent-primary"
-        @input="updateMapping('repeatX', $event)"
       />
     </div>
 
@@ -29,12 +28,11 @@
       </div>
       <input
         type="range"
-        min="0.1"
-        max="5"
-        step="0.1"
-        :value="store.textureMappingConfig.repeatY"
+        min="-2"
+        max="2"
+        step="0.01"
+        v-model.number="repeatY"
         class="w-full accent-primary"
-        @input="updateMapping('repeatY', $event)"
       />
     </div>
 
@@ -49,9 +47,8 @@
         min="-1"
         max="1"
         step="0.01"
-        :value="store.textureMappingConfig.offsetX"
+        v-model.number="offsetX"
         class="w-full accent-primary"
-        @input="updateMapping('offsetX', $event)"
       />
     </div>
 
@@ -66,9 +63,8 @@
         min="-1"
         max="1"
         step="0.01"
-        :value="store.textureMappingConfig.offsetY"
+        v-model.number="offsetY"
         class="w-full accent-primary"
-        @input="updateMapping('offsetY', $event)"
       />
     </div>
 
@@ -76,16 +72,15 @@
     <div>
       <div class="flex justify-between text-xs text-[var(--text-muted)] mb-1">
         <span>Rotation</span>
-        <span>{{ (store.textureMappingConfig.rotation * (180 / Math.PI)).toFixed(0) }}°</span>
+        <span>{{ (store.textureMappingConfig.rotation * (180 / Math.PI)).toFixed(0) }}&deg;</span>
       </div>
       <input
         type="range"
         min="0"
         :max="Math.PI * 2"
         step="0.01"
-        :value="store.textureMappingConfig.rotation"
+        v-model.number="rotation"
         class="w-full accent-primary"
-        @input="updateMapping('rotation', $event)"
       />
     </div>
 
@@ -114,15 +109,23 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useViewer3dStore } from '../store'
 import { useDesignPlacement } from '../composables/useDesignPlacement'
-import type { TextureMappingConfig } from '../types'
 
 const store = useViewer3dStore()
 const placement = useDesignPlacement()
 
-function updateMapping(key: keyof TextureMappingConfig, event: Event) {
-  const value = parseFloat((event.target as HTMLInputElement).value)
-  store.setTextureMappingConfig({ [key]: value })
+function makeConfigProp(key: 'repeatX' | 'repeatY' | 'offsetX' | 'offsetY' | 'rotation') {
+  return computed({
+    get: () => store.textureMappingConfig[key],
+    set: (value: number) => store.setTextureMappingConfig({ [key]: value }),
+  })
 }
+
+const repeatX = makeConfigProp('repeatX')
+const repeatY = makeConfigProp('repeatY')
+const offsetX = makeConfigProp('offsetX')
+const offsetY = makeConfigProp('offsetY')
+const rotation = makeConfigProp('rotation')
 </script>

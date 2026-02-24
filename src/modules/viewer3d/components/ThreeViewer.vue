@@ -41,6 +41,7 @@ import { useAutoRotate } from '../composables/useAutoRotate'
 import { useExporter } from '../composables/useExporter'
 import { useProductMaterial } from '../composables/useProductMaterial'
 import { useMultiAngleExport } from '../composables/useMultiAngleExport'
+import { useDesignDrag } from '../composables/useDesignDrag'
 import LoadingOverlay from './LoadingOverlay.vue'
 
 const store = useViewer3dStore()
@@ -65,6 +66,12 @@ const { exportImage } = useExporter(
   () => camera.value,
 )
 useProductMaterial(() => currentModel.value)
+useDesignDrag(
+  () => renderer.value,
+  () => camera.value,
+  () => controls.value,
+  () => currentModel.value,
+)
 const { exportAllAngles } = useMultiAngleExport(
   () => renderer.value,
   () => scene.value,

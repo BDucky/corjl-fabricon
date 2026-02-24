@@ -8,6 +8,7 @@ export function useTextureMapper(
   const store = useViewer3dStore()
   const textureLoader = new THREE.TextureLoader()
   let currentTexture: THREE.Texture | null = null
+  let loadedTextureUrl: string | null = null
 
   function isTargetMesh(child: THREE.Mesh, targetMeshNames: string[], targetMaterialNames: string[]): boolean {
     // No targets specified — match all
@@ -77,29 +78,55 @@ export function useTextureMapper(
     currentTexture.needsUpdate = true
   }
 
-  // Watch texture URL changes
-  watch(
-    () => store.textureUrl,
-    (url) => {
-      if (currentTexture) {
-        currentTexture.dispose()
-        currentTexture = null
-      }
+  function loadAndApplyTexture(url: string) {
+    // Already loaded this exact URL — just re-apply
+    if (currentTexture && loadedTextureUrl === url) {
+      updateTextureMapping()
+      applyTextureToMeshes(currentTexture)
+      return
+    }
 
-      if (!url) {
-        applyTextureToMeshes(null)
-        return
-      }
+    // Dispose previous texture
+    if (currentTexture) {
+      currentTexture.dispose()
+      currentTexture = null
+      loadedTextureUrl = null
+    }
 
-      textureLoader.load(url, (texture) => {
+    textureLoader.load(
+      url,
+      (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace
         texture.wrapS = THREE.RepeatWrapping
         texture.wrapT = THREE.RepeatWrapping
         texture.flipY = false
         currentTexture = texture
+        loadedTextureUrl = url
         updateTextureMapping()
         applyTextureToMeshes(texture)
-      })
+      },
+      undefined,
+      (err) => {
+        console.warn('Failed to load texture:', url, err)
+      },
+    )
+  }
+
+  // Watch texture URL changes
+  watch(
+    () => store.textureUrl,
+    (url) => {
+      if (!url) {
+        if (currentTexture) {
+          currentTexture.dispose()
+          currentTexture = null
+          loadedTextureUrl = null
+        }
+        applyTextureToMeshes(null)
+        return
+      }
+
+      loadAndApplyTexture(url)
     },
   )
 
@@ -112,6 +139,24 @@ export function useTextureMapper(
     },
     { deep: true },
   )
+
+  // Re-apply texture when the model changes (e.g., user picks a different product)
+  // This handles the race condition where the model loads after the texture
+  watch(getCurrentModel, (model) => {
+    if (!model) return
+
+    const url = store.textureUrl
+    if (!url) return
+
+    // If we have the texture loaded, just re-apply to the new model
+    if (currentTexture && loadedTextureUrl === url) {
+      updateTextureMapping()
+      applyTextureToMeshes(currentTexture)
+    } else {
+      // Texture not loaded yet or URL changed — load and apply
+      loadAndApplyTexture(url)
+    }
+  })
 
   return { applyTextureToMeshes }
 }

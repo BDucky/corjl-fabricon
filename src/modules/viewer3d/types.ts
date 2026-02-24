@@ -84,6 +84,15 @@ export interface ProductColorPreset {
   hex: string
 }
 
+export interface ModelTextureDefaults {
+  areaAspectRatio: number  // width/height of the printable area on the model
+  maxRepeatX: number       // max UV repeat along X
+  maxRepeatY: number       // max UV repeat along Y
+  defaultOffsetX: number   // center offset X
+  defaultOffsetY: number   // center offset Y
+  flipV?: boolean          // flip texture vertically (for models with inverted V-axis UVs)
+}
+
 export interface ExportAngle {
   id: string
   name: string

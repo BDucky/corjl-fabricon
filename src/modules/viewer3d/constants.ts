@@ -1,4 +1,4 @@
-import type { LightingPreset, CameraPreset, ModelInfo, TextureMappingConfig, ExportSettings, AspectRatioProfile, ProductColorPreset, ExportAngle } from './types'
+import type { LightingPreset, CameraPreset, ModelInfo, TextureMappingConfig, ExportSettings, AspectRatioProfile, ProductColorPreset, ExportAngle, ModelTextureDefaults } from './types'
 
 export const LIGHTING_PRESETS: LightingPreset[] = [
   {
@@ -149,6 +149,18 @@ export const BUNDLED_MODELS: ModelInfo[] = [
     bundled: true,
   },
 ]
+
+export const MODEL_TEXTURE_DEFAULTS: Record<string, ModelTextureDefaults> = {
+  tshirt:       { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
+  polo:         { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  hoodie:       { areaAspectRatio: 0.9,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
+  tanktop:      { areaAspectRatio: 0.75, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  totebag:      { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  phonecase:    { areaAspectRatio: 0.5,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  coffeemug:    { areaAspectRatio: 3.0,  maxRepeatX: 1, maxRepeatY: 0.6, defaultOffsetX: 0, defaultOffsetY: 0.2 },
+  cardboardbox: { areaAspectRatio: 1.5,  maxRepeatX: 1, maxRepeatY: 0.7, defaultOffsetX: 0, defaultOffsetY: 0.15, flipV: true },
+  standee:      { areaAspectRatio: 0.6,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
+}
 
 export const DEFAULT_TEXTURE_MAPPING: TextureMappingConfig = {
   offsetX: 0,

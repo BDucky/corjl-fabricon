@@ -17,6 +17,7 @@ import {
   DEFAULT_EXPORT_SETTINGS,
   DEFAULT_BACKGROUND_COLOR,
   ASPECT_RATIO_PROFILES,
+  MODEL_TEXTURE_DEFAULTS,
 } from './constants'
 
 export const useViewer3dStore = defineStore('viewer3d', () => {
@@ -109,6 +110,9 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     if (!id) {
       textureUrl.value = null
       textureMappingConfig.value = { ...DEFAULT_TEXTURE_MAPPING }
+    } else if (designDimensions.value) {
+      // Re-fit design to the new model
+      autoFitDesign()
     }
   }
 
@@ -130,6 +134,73 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
 
   function resetTextureMapping() {
     textureMappingConfig.value = { ...DEFAULT_TEXTURE_MAPPING }
+  }
+
+  function autoFitDesign() {
+    const dims = designDimensions.value
+    if (!dims) return
+
+    const designRatio = dims.width / dims.height
+    const modelId = activeModelId.value
+    const defaults = modelId ? MODEL_TEXTURE_DEFAULTS[modelId] : null
+
+    if (!defaults) {
+      // Fallback: generic fit (no model-specific data)
+      if (designRatio > 1) {
+        textureMappingConfig.value = {
+          repeatX: 1,
+          repeatY: 1 / designRatio,
+          offsetX: 0,
+          offsetY: (1 - 1 / designRatio) / 2,
+          rotation: 0,
+        }
+      } else {
+        textureMappingConfig.value = {
+          repeatX: designRatio,
+          repeatY: 1,
+          offsetX: (1 - designRatio) / 2,
+          offsetY: 0,
+          rotation: 0,
+        }
+      }
+      return
+    }
+
+    // Model-aware fit: compare design ratio to printable area ratio
+    const areaRatio = defaults.areaAspectRatio
+    const fitRatio = designRatio / areaRatio
+
+    let repeatX: number
+    let repeatY: number
+
+    if (fitRatio >= 1) {
+      // Design is wider than printable area — fit to width, shrink height
+      repeatX = defaults.maxRepeatX
+      repeatY = Math.min(defaults.maxRepeatX / fitRatio, defaults.maxRepeatY)
+    } else {
+      // Design is taller than printable area — fit to height, shrink width
+      repeatY = defaults.maxRepeatY
+      repeatX = Math.min(defaults.maxRepeatY * fitRatio, defaults.maxRepeatX)
+    }
+
+    // Flip V-axis for models with inverted UVs
+    if (defaults.flipV) {
+      repeatY = -repeatY
+    }
+
+    // Center the design within the UV space, then apply model's default offset
+    const offsetX = (1 - Math.abs(repeatX)) / 2 + defaults.defaultOffsetX
+    const offsetY = defaults.flipV
+      ? (1 + Math.abs(repeatY)) / 2 + defaults.defaultOffsetY
+      : (1 - repeatY) / 2 + defaults.defaultOffsetY
+
+    textureMappingConfig.value = {
+      repeatX,
+      repeatY,
+      offsetX,
+      offsetY,
+      rotation: 0,
+    }
   }
 
   function toggleAutoRotate() {
@@ -170,6 +241,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
         designImageUrl.value = url
         designDimensions.value = { width: img.naturalWidth, height: img.naturalHeight }
         designName.value = file.name
+        autoFitDesign()
         textureUrl.value = url
 
         // Auto-select best matching product if none selected
@@ -192,6 +264,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
         designImageUrl.value = url
         designDimensions.value = { width: img.naturalWidth, height: img.naturalHeight }
         designName.value = null
+        autoFitDesign()
         textureUrl.value = url
 
         // Auto-select best matching product if none selected
@@ -271,6 +344,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     setTextureUrl,
     setTextureMappingConfig,
     resetTextureMapping,
+    autoFitDesign,
     toggleAutoRotate,
     toggleGroundShadow,
     addUploadedModel,
