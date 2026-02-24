@@ -204,11 +204,6 @@ body {
 }
 
 /* ─── Canvas utilities ─── */
-.fabric-canvas {
-  border: 1px solid var(--border-default);
-  background-color: #fff;
-}
-
 .three-viewer {
   border: 1px solid var(--border-default);
   background-color: #222;
@@ -243,7 +238,7 @@ body {
   }
 }
 
-/* ─── Viewport Transition (2D ↔ 3D) ─── */
+/* ─── Viewport Transition ─── */
 .viewport-transition-enter-active,
 .viewport-transition-leave-active {
   transition: filter 0.4s ease, opacity 0.4s ease;
