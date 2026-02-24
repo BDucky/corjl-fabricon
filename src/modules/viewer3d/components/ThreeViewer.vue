@@ -39,6 +39,8 @@ import { useCameraPresets } from '../composables/useCameraPresets'
 import { useGroundShadow } from '../composables/useGroundShadow'
 import { useAutoRotate } from '../composables/useAutoRotate'
 import { useExporter } from '../composables/useExporter'
+import { useProductMaterial } from '../composables/useProductMaterial'
+import { useMultiAngleExport } from '../composables/useMultiAngleExport'
 import LoadingOverlay from './LoadingOverlay.vue'
 
 const store = useViewer3dStore()
@@ -61,6 +63,13 @@ const { exportImage } = useExporter(
   () => renderer.value,
   () => scene.value,
   () => camera.value,
+)
+useProductMaterial(() => currentModel.value)
+const { exportAllAngles } = useMultiAngleExport(
+  () => renderer.value,
+  () => scene.value,
+  () => camera.value,
+  () => controls.value,
 )
 
 function addSceneEnvironment(s: THREE.Scene) {
@@ -135,6 +144,7 @@ onMounted(() => {
 
 defineExpose({
   exportImage,
+  exportAllAngles,
   getCanvas,
   cameraPresets,
 })

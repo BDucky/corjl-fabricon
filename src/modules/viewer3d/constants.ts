@@ -1,4 +1,4 @@
-import type { LightingPreset, CameraPreset, ModelInfo, TextureMappingConfig, ExportSettings } from './types'
+import type { LightingPreset, CameraPreset, ModelInfo, TextureMappingConfig, ExportSettings, AspectRatioProfile, ProductColorPreset, ExportAngle } from './types'
 
 export const LIGHTING_PRESETS: LightingPreset[] = [
   {
@@ -54,6 +54,18 @@ export const CAMERA_PRESETS: CameraPreset[] = [
   { id: 'top', name: 'Top', position: [0, 4, 0.01], target: [0, 0, 0] },
   { id: 'custom', name: 'Custom', position: [0, 0, 3], target: [0, 0, 0] },
 ]
+
+export const ASPECT_RATIO_PROFILES: Record<string, AspectRatioProfile> = {
+  tshirt: { minRatio: 0.7, maxRatio: 1.3, idealRatio: 0.85 },
+  polo: { minRatio: 0.7, maxRatio: 1.3, idealRatio: 0.85 },
+  hoodie: { minRatio: 0.7, maxRatio: 1.3, idealRatio: 0.9 },
+  tanktop: { minRatio: 0.6, maxRatio: 1.2, idealRatio: 0.8 },
+  totebag: { minRatio: 0.7, maxRatio: 1.2, idealRatio: 0.9 },
+  phonecase: { minRatio: 0.4, maxRatio: 0.8, idealRatio: 0.5 },
+  coffeemug: { minRatio: 1.5, maxRatio: 4.0, idealRatio: 2.5 },
+  cardboardbox: { minRatio: 1.0, maxRatio: 3.0, idealRatio: 1.5 },
+  standee: { minRatio: 0.3, maxRatio: 0.9, idealRatio: 0.6 },
+}
 
 export const BUNDLED_MODELS: ModelInfo[] = [
   {
@@ -160,3 +172,80 @@ export const EXPORT_RESOLUTIONS = [
   { label: '2K', width: 2560, height: 1440 },
   { label: '4K', width: 3840, height: 2160 },
 ] as const
+
+export const PRODUCT_COLORS: Record<string, ProductColorPreset[]> = {
+  tshirt: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Navy', hex: '#1b2a4a' },
+    { name: 'Red', hex: '#c0392b' },
+    { name: 'Grey', hex: '#7f8c8d' },
+  ],
+  polo: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Navy', hex: '#1b2a4a' },
+    { name: 'Light Blue', hex: '#5dade2' },
+    { name: 'Grey', hex: '#7f8c8d' },
+  ],
+  hoodie: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Navy', hex: '#1b2a4a' },
+    { name: 'Charcoal', hex: '#2c3e50' },
+    { name: 'Burgundy', hex: '#6c2142' },
+  ],
+  tanktop: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Red', hex: '#c0392b' },
+    { name: 'Blue', hex: '#2980b9' },
+    { name: 'Grey', hex: '#7f8c8d' },
+  ],
+  totebag: [
+    { name: 'Natural', hex: '#f5e6c8' },
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Navy', hex: '#1b2a4a' },
+  ],
+  phonecase: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Clear', hex: '#e8e8e8' },
+    { name: 'Rose Gold', hex: '#d4a373' },
+  ],
+  coffeemug: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+    { name: 'Red', hex: '#c0392b' },
+    { name: 'Blue', hex: '#2980b9' },
+  ],
+  cardboardbox: [
+    { name: 'Kraft', hex: '#c4a97d' },
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+  ],
+  standee: [
+    { name: 'White', hex: '#ffffff' },
+    { name: 'Black', hex: '#1a1a1a' },
+  ],
+}
+
+export const DEFAULT_PRODUCT_COLORS: ProductColorPreset[] = [
+  { name: 'White', hex: '#ffffff' },
+  { name: 'Black', hex: '#1a1a1a' },
+  { name: 'Navy', hex: '#1b2a4a' },
+  { name: 'Red', hex: '#c0392b' },
+  { name: 'Grey', hex: '#7f8c8d' },
+]
+
+export const EXPORT_ANGLES: ExportAngle[] = [
+  { id: 'front', name: 'Front', position: [0, 0, 3], target: [0, 0, 0] },
+  { id: 'angle-45', name: '45° Right', position: [2.1, 1.5, 2.1], target: [0, 0, 0] },
+  { id: 'angle-45-left', name: '45° Left', position: [-2.1, 1.5, 2.1], target: [0, 0, 0] },
+  { id: 'side-right', name: 'Side Right', position: [3, 0.5, 0], target: [0, 0, 0] },
+  { id: 'side-left', name: 'Side Left', position: [-3, 0.5, 0], target: [0, 0, 0] },
+  { id: 'back', name: 'Back', position: [0, 0.5, -3], target: [0, 0, 0] },
+  { id: 'top-angle', name: 'Top Angle', position: [1.5, 3, 1.5], target: [0, 0, 0] },
+  { id: 'low-angle', name: 'Low Angle', position: [1.5, -0.5, 2.5], target: [0, 0.5, 0] },
+]

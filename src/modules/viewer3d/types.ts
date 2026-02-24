@@ -58,3 +58,35 @@ export interface CameraPreset {
   position: [number, number, number]
   target: [number, number, number]
 }
+
+// Design input types
+export interface DesignInput {
+  url: string
+  width: number
+  height: number
+  name?: string
+}
+
+export interface ProductSuggestion {
+  model: ModelInfo
+  score: number
+  reason: string
+}
+
+export interface AspectRatioProfile {
+  minRatio: number
+  maxRatio: number
+  idealRatio: number
+}
+
+export interface ProductColorPreset {
+  name: string
+  hex: string
+}
+
+export interface ExportAngle {
+  id: string
+  name: string
+  position: [number, number, number]
+  target: [number, number, number]
+}

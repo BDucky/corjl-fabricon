@@ -6,6 +6,8 @@ import type {
   ModelInfo,
   TextureMappingConfig,
   ExportSettings,
+  DesignInput,
+  ProductSuggestion,
 } from './types'
 import {
   BUNDLED_MODELS,
@@ -14,6 +16,7 @@ import {
   DEFAULT_TEXTURE_MAPPING,
   DEFAULT_EXPORT_SETTINGS,
   DEFAULT_BACKGROUND_COLOR,
+  ASPECT_RATIO_PROFILES,
 } from './constants'
 
 export const useViewer3dStore = defineStore('viewer3d', () => {
@@ -23,6 +26,11 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   const isModelLoading = ref(false)
   const modelLoadProgress = ref(0)
 
+  // Design input state
+  const designImageUrl = ref<string | null>(null)
+  const designDimensions = ref<{ width: number; height: number } | null>(null)
+  const designName = ref<string | null>(null)
+
   // Viewer state
   const lightingPresetId = ref<LightingPresetId>('studio-soft')
   const cameraPresetId = ref<CameraPresetId>('angle-45')
@@ -30,12 +38,17 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   const autoRotate = ref(false)
   const showGroundShadow = ref(true)
 
+  // Product color state
+  const productColor = ref('#ffffff')
+
   // Texture state
   const textureUrl = ref<string | null>(null)
   const textureMappingConfig = ref<TextureMappingConfig>({ ...DEFAULT_TEXTURE_MAPPING })
 
   // Export state
   const exportSettings = ref<ExportSettings>({ ...DEFAULT_EXPORT_SETTINGS })
+  const isExporting = ref(false)
+  const exportProgress = ref(0)
 
   // Computed
   const allModels = computed<ModelInfo[]>(() => [
@@ -49,6 +62,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
 
   const hasTexture = computed(() => !!textureUrl.value)
   const hasModel = computed(() => !!activeModelId.value)
+  const hasDesign = computed(() => !!designImageUrl.value)
 
   const activeLightingPreset = computed(() =>
     LIGHTING_PRESETS.find((p) => p.id === lightingPresetId.value) ?? LIGHTING_PRESETS[0],
@@ -57,6 +71,37 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   const activeCameraPreset = computed(() =>
     CAMERA_PRESETS.find((p) => p.id === cameraPresetId.value) ?? CAMERA_PRESETS[0],
   )
+
+  const designAspectRatio = computed(() => {
+    if (!designDimensions.value) return null
+    return designDimensions.value.width / designDimensions.value.height
+  })
+
+  const productSuggestions = computed<ProductSuggestion[]>(() => {
+    const ratio = designAspectRatio.value
+    if (ratio === null) return BUNDLED_MODELS.map((m) => ({ model: m, score: 50, reason: 'No design loaded' }))
+
+    return BUNDLED_MODELS.map((model) => {
+      const profile = ASPECT_RATIO_PROFILES[model.id]
+      if (!profile) return { model, score: 50, reason: 'Compatible' }
+
+      // Score based on how close the design ratio is to the ideal
+      if (ratio >= profile.minRatio && ratio <= profile.maxRatio) {
+        const distance = Math.abs(ratio - profile.idealRatio)
+        const range = profile.maxRatio - profile.minRatio
+        const normalized = 1 - (distance / range)
+        const score = Math.round(70 + normalized * 30)
+        return { model, score, reason: score >= 90 ? 'Best match' : 'Good fit' }
+      }
+
+      // Outside range — lower score based on distance
+      const distMin = Math.abs(ratio - profile.minRatio)
+      const distMax = Math.abs(ratio - profile.maxRatio)
+      const dist = Math.min(distMin, distMax)
+      const score = Math.max(10, Math.round(60 - dist * 30))
+      return { model, score, reason: 'Possible stretch' }
+    }).sort((a, b) => b.score - a.score)
+  })
 
   // Actions
   function selectModel(id: string | null) {
@@ -83,6 +128,10 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     textureMappingConfig.value = { ...textureMappingConfig.value, ...config }
   }
 
+  function resetTextureMapping() {
+    textureMappingConfig.value = { ...DEFAULT_TEXTURE_MAPPING }
+  }
+
   function toggleAutoRotate() {
     autoRotate.value = !autoRotate.value
   }
@@ -104,7 +153,71 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     modelLoadProgress.value = progress
   }
 
+  function setProductColor(color: string) {
+    productColor.value = color
+  }
+
+  function setDesignFromFile(file: File): Promise<DesignInput> {
+    return new Promise((resolve, reject) => {
+      if (!file.type.startsWith('image/')) {
+        reject(new Error('File must be an image'))
+        return
+      }
+
+      const url = URL.createObjectURL(file)
+      const img = new Image()
+      img.onload = () => {
+        designImageUrl.value = url
+        designDimensions.value = { width: img.naturalWidth, height: img.naturalHeight }
+        designName.value = file.name
+        textureUrl.value = url
+
+        // Auto-select best matching product if none selected
+        if (!activeModelId.value && productSuggestions.value.length > 0) {
+          selectModel(productSuggestions.value[0].model.id)
+        }
+
+        resolve({ url, width: img.naturalWidth, height: img.naturalHeight, name: file.name })
+      }
+      img.onerror = () => reject(new Error('Failed to load image'))
+      img.src = url
+    })
+  }
+
+  function setDesignFromUrl(url: string): Promise<DesignInput> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => {
+        designImageUrl.value = url
+        designDimensions.value = { width: img.naturalWidth, height: img.naturalHeight }
+        designName.value = null
+        textureUrl.value = url
+
+        // Auto-select best matching product if none selected
+        if (!activeModelId.value && productSuggestions.value.length > 0) {
+          selectModel(productSuggestions.value[0].model.id)
+        }
+
+        resolve({ url, width: img.naturalWidth, height: img.naturalHeight })
+      }
+      img.onerror = () => reject(new Error('Failed to load image from URL'))
+      img.src = url
+    })
+  }
+
+  function clearDesign() {
+    if (designImageUrl.value?.startsWith('blob:')) {
+      URL.revokeObjectURL(designImageUrl.value)
+    }
+    designImageUrl.value = null
+    designDimensions.value = null
+    designName.value = null
+    textureUrl.value = null
+  }
+
   function reset() {
+    clearDesign()
     activeModelId.value = null
     uploadedModels.value = []
     isModelLoading.value = false
@@ -114,9 +227,11 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     backgroundColor.value = DEFAULT_BACKGROUND_COLOR
     autoRotate.value = false
     showGroundShadow.value = true
-    textureUrl.value = null
+    productColor.value = '#ffffff'
     textureMappingConfig.value = { ...DEFAULT_TEXTURE_MAPPING }
     exportSettings.value = { ...DEFAULT_EXPORT_SETTINGS }
+    isExporting.value = false
+    exportProgress.value = 0
   }
 
   return {
@@ -125,32 +240,46 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     uploadedModels,
     isModelLoading,
     modelLoadProgress,
+    designImageUrl,
+    designDimensions,
+    designName,
     lightingPresetId,
     cameraPresetId,
     backgroundColor,
     autoRotate,
     showGroundShadow,
+    productColor,
     textureUrl,
     textureMappingConfig,
     exportSettings,
+    isExporting,
+    exportProgress,
     // Computed
     allModels,
     activeModel,
     hasTexture,
     hasModel,
+    hasDesign,
     activeLightingPreset,
     activeCameraPreset,
+    designAspectRatio,
+    productSuggestions,
     // Actions
     selectModel,
     setLightingPreset,
     setCameraPreset,
     setTextureUrl,
     setTextureMappingConfig,
+    resetTextureMapping,
     toggleAutoRotate,
     toggleGroundShadow,
     addUploadedModel,
     setExportSettings,
     setModelLoading,
+    setProductColor,
+    setDesignFromFile,
+    setDesignFromUrl,
+    clearDesign,
     reset,
   }
 })
