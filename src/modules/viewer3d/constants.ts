@@ -153,12 +153,12 @@ export const BUNDLED_MODELS: ModelInfo[] = [
 export const MODEL_TEXTURE_DEFAULTS: Record<string, ModelTextureDefaults> = {
   tshirt:       { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
   polo:         { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
-  hoodie:       { areaAspectRatio: 0.9,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
-  tanktop:      { areaAspectRatio: 0.75, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  hoodie:       { areaAspectRatio: 0.9,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  tanktop:      { areaAspectRatio: 0.75, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, printAreaUV: { minU: 0.018, maxU: 0.983, minV: 0.668, maxV: 0.923 } },
   totebag:      { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
-  phonecase:    { areaAspectRatio: 0.5,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
+  phonecase:    { areaAspectRatio: 0.5,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true, printAreaUV: { minU: 0.486, maxU: 0.958, minV: 0.033, maxV: 0.966 } },
   coffeemug:    { areaAspectRatio: 3.0,  maxRepeatX: 1, maxRepeatY: 0.6, defaultOffsetX: 0, defaultOffsetY: 0.2 },
-  cardboardbox: { areaAspectRatio: 1.5,  maxRepeatX: 1, maxRepeatY: 0.7, defaultOffsetX: 0, defaultOffsetY: 0.15, flipV: true },
+  cardboardbox: { areaAspectRatio: 1.5,  maxRepeatX: 1, maxRepeatY: 0.7, defaultOffsetX: 0, defaultOffsetY: 0.15 },
   standee:      { areaAspectRatio: 0.6,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
 }
 

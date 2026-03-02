@@ -55,6 +55,9 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   // Print area overlay state (Feature 3)
   const showPrintArea = ref(false)
 
+  // Texture tiling state
+  const tileDesign = ref(false)
+
   // Turntable GIF state (Feature 4)
   const turntableFrameCount = ref(36)
   const turntableFrameDelay = ref(80)
@@ -206,10 +209,23 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     }
 
     // Center the design within the UV space, then apply model's default offset
-    const offsetX = (1 - Math.abs(repeatX)) / 2 + defaults.defaultOffsetX
-    const offsetY = defaults.flipV
+    let offsetX = (1 - Math.abs(repeatX)) / 2 + defaults.defaultOffsetX
+    let offsetY = defaults.flipV
       ? (1 + Math.abs(repeatY)) / 2 + defaults.defaultOffsetY
       : (1 - repeatY) / 2 + defaults.defaultOffsetY
+
+    // Remap repeat/offset into the actual UV region of the printable area
+    if (defaults.printAreaUV) {
+      const { minU, maxU, minV, maxV } = defaults.printAreaUV
+      const rangeU = maxU - minU
+      const rangeV = maxV - minV
+      const baseRepeatX = repeatX
+      const baseRepeatY = repeatY
+      repeatX = baseRepeatX / rangeU
+      repeatY = baseRepeatY / rangeV
+      offsetX = offsetX - minU * (baseRepeatX / rangeU)
+      offsetY = offsetY - minV * (baseRepeatY / rangeV)
+    }
 
     textureMappingConfig.value = {
       repeatX,
@@ -259,6 +275,10 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
 
   function togglePrintArea() {
     showPrintArea.value = !showPrintArea.value
+  }
+
+  function toggleTileDesign() {
+    tileDesign.value = !tileDesign.value
   }
 
   function setTurntableSettings(opts: TurntableExportOptions) {
@@ -339,6 +359,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     autoRotate.value = false
     showGroundShadow.value = true
     productColor.value = '#ffffff'
+    tileDesign.value = false
     environmentPresetId.value = null
     environmentIntensity.value = 1.0
     sceneStagingPresetId.value = 'none'
@@ -366,6 +387,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     autoRotate,
     showGroundShadow,
     productColor,
+    tileDesign,
     environmentPresetId,
     environmentIntensity,
     sceneStagingPresetId,
@@ -405,6 +427,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     setEnvironmentIntensity,
     setSceneStagingPreset,
     togglePrintArea,
+    toggleTileDesign,
     setTurntableSettings,
     setDesignFromFile,
     setDesignFromUrl,

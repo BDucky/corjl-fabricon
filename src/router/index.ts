@@ -5,13 +5,13 @@ import { useAuthStore } from '@stores/auth'
 const LoginView = () => import('@/views/LoginView.vue')
 const SignupView = () => import('@/views/SignupView.vue')
 const EditorView = () => import('@/views/EditorView.vue')
-const ProjectsView = () => import('@/views/ProjectsView.vue')
+const MyDesignsView = () => import('@/views/MyDesignsView.vue')
 const TemplatesView = () => import('@/views/TemplatesView.vue')
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/projects',
+    redirect: '/designs',
   },
   {
     path: '/login',
@@ -26,9 +26,9 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, transition: 'page-fade' },
   },
   {
-    path: '/projects',
-    name: 'Projects',
-    component: ProjectsView,
+    path: '/designs',
+    name: 'MyDesigns',
+    component: MyDesignsView,
     meta: { requiresAuth: true, transition: 'page-fade' },
   },
   {
@@ -38,7 +38,7 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, transition: 'page-fade' },
   },
   {
-    path: '/editor/:projectId',
+    path: '/editor/:designId',
     name: 'Editor',
     component: EditorView,
     meta: { requiresAuth: true, transition: 'zoom-fade' },
@@ -71,7 +71,7 @@ router.beforeEach(async (to, _from, next) => {
   if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else if (!requiresAuth && authStore.isAuthenticated && (to.path === '/login' || to.path === '/signup')) {
-    next('/projects')
+    next('/designs')
   } else {
     next()
   }

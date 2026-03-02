@@ -1,6 +1,7 @@
 import { onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useViewer3dStore } from '../store'
+import { useDesignsStore } from '@stores/designs'
 import { BUNDLED_MODELS } from '../constants'
 
 export function useURLParams() {
@@ -9,6 +10,7 @@ export function useURLParams() {
 
   onMounted(async () => {
     const { design, model, color } = route.query as Record<string, string | undefined>
+    const designId = route.params.designId as string | undefined
 
     // Apply model selection from URL
     if (model) {
@@ -28,8 +30,24 @@ export function useURLParams() {
       }
     }
 
-    // Load design from URL
-    if (design) {
+    // Load design from route param (designId from /editor/:designId)
+    if (designId) {
+      try {
+        const designsStore = useDesignsStore()
+        const detail = await designsStore.fetchDesignDetail(designId)
+        if (detail) {
+          const thumbnailUrl = designsStore.getPrimaryPageThumbnail(detail)
+          if (thumbnailUrl) {
+            store.designName = detail.designName
+            await store.setDesignFromUrl(thumbnailUrl)
+          }
+        }
+      } catch {
+        // Silently fail — user can upload manually
+      }
+    }
+    // Load design from query param (legacy ?design=url support)
+    else if (design) {
       try {
         await store.setDesignFromUrl(design)
       } catch {

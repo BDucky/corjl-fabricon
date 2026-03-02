@@ -73,8 +73,9 @@ export function useTextureMapper(
     currentTexture.offset.set(config.offsetX, config.offsetY)
     currentTexture.repeat.set(config.repeatX, config.repeatY)
     currentTexture.rotation = config.rotation
-    currentTexture.wrapS = THREE.RepeatWrapping
-    currentTexture.wrapT = THREE.RepeatWrapping
+    const wrapMode = store.tileDesign ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping
+    currentTexture.wrapS = wrapMode
+    currentTexture.wrapT = wrapMode
     currentTexture.needsUpdate = true
   }
 
@@ -97,8 +98,9 @@ export function useTextureMapper(
       url,
       (texture) => {
         texture.colorSpace = THREE.SRGBColorSpace
-        texture.wrapS = THREE.RepeatWrapping
-        texture.wrapT = THREE.RepeatWrapping
+        const wrapMode = store.tileDesign ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping
+        texture.wrapS = wrapMode
+        texture.wrapT = wrapMode
         texture.flipY = false
         currentTexture = texture
         loadedTextureUrl = url
@@ -138,6 +140,15 @@ export function useTextureMapper(
       applyTextureToMeshes(currentTexture)
     },
     { deep: true },
+  )
+
+  // Watch tile design toggle
+  watch(
+    () => store.tileDesign,
+    () => {
+      updateTextureMapping()
+      applyTextureToMeshes(currentTexture)
+    },
   )
 
   // Re-apply texture when the model changes (e.g., user picks a different product)

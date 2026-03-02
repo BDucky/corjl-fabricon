@@ -91,6 +91,9 @@ export interface ModelTextureDefaults {
   defaultOffsetX: number   // center offset X
   defaultOffsetY: number   // center offset Y
   flipV?: boolean          // flip texture vertically (for models with inverted V-axis UVs)
+  /** Actual UV bounds of the printable area on the target mesh.
+   *  When set, autoFitDesign remaps repeat/offset into this region. */
+  printAreaUV?: { minU: number; maxU: number; minV: number; maxV: number }
 }
 
 export interface ExportAngle {

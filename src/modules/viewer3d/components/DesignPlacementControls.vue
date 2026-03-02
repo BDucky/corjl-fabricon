@@ -11,11 +11,11 @@
         <span>{{ store.textureMappingConfig.repeatX.toFixed(2) }}</span>
       </div>
       <input
+        v-model.number="repeatX"
         type="range"
         min="-2"
         max="2"
         step="0.01"
-        v-model.number="repeatX"
         class="w-full accent-primary"
       />
     </div>
@@ -27,11 +27,11 @@
         <span>{{ store.textureMappingConfig.repeatY.toFixed(2) }}</span>
       </div>
       <input
+        v-model.number="repeatY"
         type="range"
         min="-2"
         max="2"
         step="0.01"
-        v-model.number="repeatY"
         class="w-full accent-primary"
       />
     </div>
@@ -43,11 +43,11 @@
         <span>{{ store.textureMappingConfig.offsetX.toFixed(2) }}</span>
       </div>
       <input
+        v-model.number="offsetX"
         type="range"
         min="-1"
         max="1"
         step="0.01"
-        v-model.number="offsetX"
         class="w-full accent-primary"
       />
     </div>
@@ -59,11 +59,11 @@
         <span>{{ store.textureMappingConfig.offsetY.toFixed(2) }}</span>
       </div>
       <input
+        v-model.number="offsetY"
         type="range"
         min="-1"
         max="1"
         step="0.01"
-        v-model.number="offsetY"
         class="w-full accent-primary"
       />
     </div>
@@ -75,14 +75,25 @@
         <span>{{ (store.textureMappingConfig.rotation * (180 / Math.PI)).toFixed(0) }}&deg;</span>
       </div>
       <input
+        v-model.number="rotation"
         type="range"
         min="0"
         :max="Math.PI * 2"
         step="0.01"
-        v-model.number="rotation"
         class="w-full accent-primary"
       />
     </div>
+
+    <!-- Tile design toggle -->
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        :checked="store.tileDesign"
+        class="accent-primary w-3.5 h-3.5 rounded"
+        @change="store.toggleTileDesign()"
+      />
+      <span class="text-xs text-[var(--text-secondary)]">Tile / Repeat design</span>
+    </label>
 
     <!-- Action buttons -->
     <div class="flex gap-1.5">

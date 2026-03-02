@@ -4,13 +4,13 @@
     <div class="flex items-center justify-between px-4 py-2.5 bg-primary border-b border-primary-dark">
       <div class="flex items-center gap-4">
         <RouterLink
-          to="/projects"
+          to="/designs"
           class="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-1"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-          Projects
+          My Designs
         </RouterLink>
         <h1 class="text-base font-semibold text-white font-rubik">
           Fabricon 3D Preview
