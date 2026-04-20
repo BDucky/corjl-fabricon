@@ -4,64 +4,48 @@
       Design Placement
     </label>
 
-    <!-- Scale X -->
+    <!-- Design Size -->
     <div>
       <div class="flex justify-between text-xs text-[var(--text-muted)] mb-1">
-        <span>Scale X</span>
-        <span>{{ store.textureMappingConfig.repeatX.toFixed(2) }}</span>
+        <span>Design Size</span>
+        <span>{{ (store.textureMappingConfig.repeatX * 100).toFixed(0) }}%</span>
       </div>
       <input
-        v-model.number="repeatX"
+        v-model.number="designSize"
         type="range"
-        min="-2"
-        max="2"
+        min="0.05"
+        max="1.0"
         step="0.01"
         class="w-full accent-primary"
       />
     </div>
 
-    <!-- Scale Y -->
+    <!-- Horizontal Position -->
     <div>
       <div class="flex justify-between text-xs text-[var(--text-muted)] mb-1">
-        <span>Scale Y</span>
-        <span>{{ store.textureMappingConfig.repeatY.toFixed(2) }}</span>
-      </div>
-      <input
-        v-model.number="repeatY"
-        type="range"
-        min="-2"
-        max="2"
-        step="0.01"
-        class="w-full accent-primary"
-      />
-    </div>
-
-    <!-- Position X -->
-    <div>
-      <div class="flex justify-between text-xs text-[var(--text-muted)] mb-1">
-        <span>Position X</span>
-        <span>{{ store.textureMappingConfig.offsetX.toFixed(2) }}</span>
+        <span>Horizontal</span>
+        <span>{{ (store.textureMappingConfig.offsetX * 100).toFixed(0) }}%</span>
       </div>
       <input
         v-model.number="offsetX"
         type="range"
-        min="-1"
+        min="0"
         max="1"
         step="0.01"
         class="w-full accent-primary"
       />
     </div>
 
-    <!-- Position Y -->
+    <!-- Vertical Position -->
     <div>
       <div class="flex justify-between text-xs text-[var(--text-muted)] mb-1">
-        <span>Position Y</span>
-        <span>{{ store.textureMappingConfig.offsetY.toFixed(2) }}</span>
+        <span>Vertical</span>
+        <span>{{ (store.textureMappingConfig.offsetY * 100).toFixed(0) }}%</span>
       </div>
       <input
         v-model.number="offsetY"
         type="range"
-        min="-1"
+        min="0"
         max="1"
         step="0.01"
         class="w-full accent-primary"
@@ -84,7 +68,7 @@
       />
     </div>
 
-    <!-- Tile design toggle -->
+    <!-- Fill entire area toggle -->
     <label class="flex items-center gap-2 cursor-pointer">
       <input
         type="checkbox"
@@ -92,7 +76,7 @@
         class="accent-primary w-3.5 h-3.5 rounded"
         @change="store.toggleTileDesign()"
       />
-      <span class="text-xs text-[var(--text-secondary)]">Tile / Repeat design</span>
+      <span class="text-xs text-[var(--text-secondary)]">Fill entire area</span>
     </label>
 
     <!-- Action buttons -->
@@ -101,7 +85,7 @@
         class="flex-1 px-2 py-1.5 rounded-lg bg-surface-2 text-xs text-[var(--text-secondary)] hover:bg-surface-3 transition-colors"
         @click="placement.fitDesignToArea()"
       >
-        Fit
+        Auto Fit
       </button>
       <button
         class="flex-1 px-2 py-1.5 rounded-lg bg-surface-2 text-xs text-[var(--text-secondary)] hover:bg-surface-3 transition-colors"
@@ -134,8 +118,10 @@ function makeConfigProp(key: 'repeatX' | 'repeatY' | 'offsetX' | 'offsetY' | 'ro
   })
 }
 
-const repeatX = makeConfigProp('repeatX')
-const repeatY = makeConfigProp('repeatY')
+const designSize = computed({
+  get: () => store.textureMappingConfig.repeatX,
+  set: (value: number) => store.setTextureMappingConfig({ repeatX: value, repeatY: value }),
+})
 const offsetX = makeConfigProp('offsetX')
 const offsetY = makeConfigProp('offsetY')
 const rotation = makeConfigProp('rotation')

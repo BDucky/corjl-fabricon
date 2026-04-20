@@ -1,173 +1,254 @@
 import { watch } from 'vue'
 import * as THREE from 'three'
 import { useViewer3dStore } from '../store'
+import { MODEL_TEXTURE_DEFAULTS } from '../constants'
+import { composeDesignCanvas } from '../utils/textureCompositor'
+import { computeUVBounds } from '../utils/computeUVBounds'
+import { generatePlanarUVs } from '../utils/generatePlanarUVs'
+import { generateCylindricalUVs } from '../utils/generateCylindricalUVs'
 
 export function useTextureMapper(
   getCurrentModel: () => THREE.Group | null,
 ) {
   const store = useViewer3dStore()
-  const textureLoader = new THREE.TextureLoader()
-  let currentTexture: THREE.Texture | null = null
-  let loadedTextureUrl: string | null = null
+
+  let loadedImage: HTMLImageElement | null = null
+  let loadedImageUrl: string | null = null
+  let compositorCanvas: HTMLCanvasElement | null = null
+  let canvasTexture: THREE.CanvasTexture | null = null
+  /** Original material colors keyed by material uuid, for restoration on clear */
+  const savedMaterialColors = new Map<string, THREE.Color>()
 
   function isTargetMesh(child: THREE.Mesh, targetMeshNames: string[], targetMaterialNames: string[]): boolean {
-    // No targets specified — match all
     if (targetMeshNames.length === 0 && targetMaterialNames.length === 0) return true
-
-    // Match by node/mesh name
     if (targetMeshNames.includes(child.name)) return true
-
-    // Match by material name
     if (targetMaterialNames.length > 0) {
       const mat = child.material as THREE.MeshStandardMaterial
       if (mat?.name && targetMaterialNames.includes(mat.name)) return true
     }
-
     return false
   }
 
-  function applyTextureToMeshes(texture: THREE.Texture | null) {
+  function getTargetMeshes(): THREE.Mesh[] {
     const model = getCurrentModel()
-    if (!model) return
+    if (!model) return []
 
     const activeModel = store.activeModel
-    if (!activeModel) return
+    if (!activeModel) return []
 
     const targetMeshNames = activeModel.targetMeshNames
     const targetMaterialNames = activeModel.targetMaterialNames ?? []
-    let applied = false
+    const meshes: THREE.Mesh[] = []
 
     model.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return
-
       if (!isTargetMesh(child, targetMeshNames, targetMaterialNames)) return
-
-      const material = child.material as THREE.MeshStandardMaterial
-      if (!material.isMeshStandardMaterial) return
-
-      if (texture) {
-        material.map = texture
-        applied = true
-      } else {
-        material.map = null
-      }
-      material.needsUpdate = true
+      meshes.push(child)
     })
 
-    // If no meshes matched, apply to all meshes as fallback
-    if (!applied && texture) {
+    // Fallback: if no matches, return all meshes
+    if (meshes.length === 0) {
       model.traverse((child) => {
-        if (!(child instanceof THREE.Mesh)) return
-        const material = child.material as THREE.MeshStandardMaterial
-        if (!material.isMeshStandardMaterial) return
-        material.map = texture
-        material.needsUpdate = true
+        if (child instanceof THREE.Mesh) meshes.push(child)
       })
     }
+
+    return meshes
   }
 
-  function updateTextureMapping() {
-    if (!currentTexture) return
+  function applyTextureToMeshes(texture: THREE.CanvasTexture | null) {
+    const meshes = getTargetMeshes()
+
+    for (const mesh of meshes) {
+      const current = mesh.material as THREE.MeshStandardMaterial
+      if (!current.isMeshStandardMaterial) continue
+
+      if (texture) {
+        // Clone once per target mesh so we don't mutate a material that may be
+        // shared with non-target primitives in the same GLB. This matches the
+        // BatchPreviewModal pipeline and also guarantees the material re-binds
+        // to freshly-regenerated geometry UVs (the coffee mug regenerates UVs
+        // via generateCylindricalUVs at load time; mutating the pre-rendered
+        // material in place leaves its UV buffer state stale).
+        if (!savedMaterialColors.has(current.uuid)) {
+          savedMaterialColors.set(current.uuid, current.color.clone())
+        }
+        const clone = current.clone()
+        clone.map = texture
+        clone.color.set(0xffffff)
+        clone.needsUpdate = true
+        mesh.material = clone
+      } else if (current.map) {
+        current.map = null
+        const saved = savedMaterialColors.get(current.uuid)
+        if (saved) {
+          current.color.copy(saved)
+          savedMaterialColors.delete(current.uuid)
+        }
+        current.needsUpdate = true
+      }
+    }
+  }
+
+  function recomposeAndApply() {
+    if (!loadedImage) return
 
     const config = store.textureMappingConfig
-    currentTexture.offset.set(config.offsetX, config.offsetY)
-    currentTexture.repeat.set(config.repeatX, config.repeatY)
-    currentTexture.rotation = config.rotation
-    const wrapMode = store.tileDesign ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping
-    currentTexture.wrapS = wrapMode
-    currentTexture.wrapT = wrapMode
-    currentTexture.needsUpdate = true
-  }
+    // Read model defaults directly to avoid reactivity timing issues
+    const modelId = store.activeModelId
+    const modelDefaults = modelId ? MODEL_TEXTURE_DEFAULTS[modelId] : undefined
+    const printArea = modelDefaults?.printAreaUV ?? store.effectivePrintAreaUV
+    const flipV = modelDefaults?.flipV ?? store.effectiveFlipV
 
-  function loadAndApplyTexture(url: string) {
-    // Already loaded this exact URL — just re-apply
-    if (currentTexture && loadedTextureUrl === url) {
-      updateTextureMapping()
-      applyTextureToMeshes(currentTexture)
-      return
-    }
-
-    // Dispose previous texture
-    if (currentTexture) {
-      currentTexture.dispose()
-      currentTexture = null
-      loadedTextureUrl = null
-    }
-
-    textureLoader.load(
-      url,
-      (texture) => {
-        texture.colorSpace = THREE.SRGBColorSpace
-        const wrapMode = store.tileDesign ? THREE.RepeatWrapping : THREE.ClampToEdgeWrapping
-        texture.wrapS = wrapMode
-        texture.wrapT = wrapMode
-        texture.flipY = false
-        currentTexture = texture
-        loadedTextureUrl = url
-        updateTextureMapping()
-        applyTextureToMeshes(texture)
+    compositorCanvas = composeDesignCanvas(
+      loadedImage,
+      {
+        designScale: config.repeatX,
+        offsetX: config.offsetX,
+        offsetY: config.offsetY,
+        rotation: config.rotation,
+        fill: store.tileDesign,
+        backgroundColor: store.productColor,
+        flipV,
+        printAreaUV: printArea,
       },
-      undefined,
-      (err) => {
-        console.warn('Failed to load texture:', url, err)
-      },
+      compositorCanvas ?? undefined,
     )
+
+    if (!canvasTexture) {
+      canvasTexture = new THREE.CanvasTexture(compositorCanvas)
+      canvasTexture.colorSpace = THREE.SRGBColorSpace
+      canvasTexture.flipY = false
+      canvasTexture.wrapS = THREE.ClampToEdgeWrapping
+      canvasTexture.wrapT = THREE.ClampToEdgeWrapping
+    } else {
+      canvasTexture.needsUpdate = true
+    }
+
+    applyTextureToMeshes(canvasTexture)
   }
 
-  // Watch texture URL changes
+  function loadImage(url: string): Promise<HTMLImageElement> {
+    return new Promise((resolve, reject) => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => resolve(img)
+      img.onerror = () => reject(new Error(`Failed to load image: ${url}`))
+      img.src = url
+    })
+  }
+
+  function clearTexture() {
+    applyTextureToMeshes(null)
+    if (canvasTexture) {
+      canvasTexture.dispose()
+      canvasTexture = null
+    }
+    compositorCanvas = null
+    loadedImage = null
+    loadedImageUrl = null
+  }
+
+  // Watch texture URL changes — load the image, then compose.
+  // immediate:true is what fixes the "re-open same design shows no texture"
+  // bug: the Pinia store persists textureUrl across navigations, so when the
+  // user navigates /editor → /designs → /editor for the SAME design, setting
+  // textureUrl to the same value on mount doesn't fire a change-only watcher.
+  // The fresh useTextureMapper instance would then never load the image,
+  // leaving every model's target meshes at their original GLB color (e.g. the
+  // hoodie's dark front material showing through as "black hoodie").
   watch(
     () => store.textureUrl,
-    (url) => {
+    async (url) => {
       if (!url) {
-        if (currentTexture) {
-          currentTexture.dispose()
-          currentTexture = null
-          loadedTextureUrl = null
-        }
-        applyTextureToMeshes(null)
+        clearTexture()
         return
       }
 
-      loadAndApplyTexture(url)
+      // Already loaded this URL — just recompose
+      if (loadedImage && loadedImageUrl === url) {
+        recomposeAndApply()
+        return
+      }
+
+      try {
+        const img = await loadImage(url)
+        loadedImage = img
+        loadedImageUrl = url
+        recomposeAndApply()
+      } catch (err) {
+        console.warn('Failed to load texture:', url, err)
+      }
     },
+    { immediate: true },
   )
 
-  // Watch UV mapping config changes
+  // Watch mapping config changes (drag-to-reposition, scale)
   watch(
     () => store.textureMappingConfig,
-    () => {
-      updateTextureMapping()
-      applyTextureToMeshes(currentTexture)
-    },
+    () => recomposeAndApply(),
     { deep: true },
   )
 
-  // Watch tile design toggle
+  // Watch tile design toggle (decoration ↔ fill)
   watch(
     () => store.tileDesign,
-    () => {
-      updateTextureMapping()
-      applyTextureToMeshes(currentTexture)
-    },
+    () => recomposeAndApply(),
   )
 
-  // Re-apply texture when the model changes (e.g., user picks a different product)
-  // This handles the race condition where the model loads after the texture
+  // Watch product color changes (canvas background)
+  watch(
+    () => store.productColor,
+    () => recomposeAndApply(),
+  )
+
+  // Re-apply when model changes (new model = different print area/flipV)
   watch(getCurrentModel, (model) => {
     if (!model) return
+    savedMaterialColors.clear()
 
-    const url = store.textureUrl
-    if (!url) return
+    // Force the parent transform chain to be flushed so mesh.matrixWorld is current
+    // before we generate UVs from world-space positions.
+    model.updateMatrixWorld(true)
 
-    // If we have the texture loaded, just re-apply to the new model
-    if (currentTexture && loadedTextureUrl === url) {
-      updateTextureMapping()
-      applyTextureToMeshes(currentTexture)
-    } else {
-      // Texture not loaded yet or URL changed — load and apply
-      loadAndApplyTexture(url)
+    const activeModel = store.activeModel
+    if (activeModel) {
+      // For target meshes that lack usable UV coordinates (e.g. the standee front
+      // panel or coffee mug body), generate procedural UVs so the design has somewhere
+      // to map to. Per-model overrides via MODEL_TEXTURE_DEFAULTS.uvProjection.
+      // Generators receive the mesh's world matrix so they can project positions into
+      // world space — essential for SketchUp-exported models whose local axes don't
+      // match world up.
+      const projection = MODEL_TEXTURE_DEFAULTS[activeModel.id]?.uvProjection ?? 'auto'
+      for (const mesh of getTargetMeshes()) {
+        if (projection === 'cylindrical-y') {
+          generateCylindricalUVs(mesh.geometry, mesh.matrixWorld)
+        } else {
+          generatePlanarUVs(mesh.geometry, mesh.matrixWorld)
+        }
+      }
+
+      // Auto-compute UV bounds from the (possibly newly-generated) UVs
+      const bounds = computeUVBounds(
+        model,
+        activeModel.targetMeshNames,
+        activeModel.targetMaterialNames ?? [],
+      )
+      store.setComputedPrintArea(bounds)
+    }
+
+    if (loadedImage) {
+      recomposeAndApply()
     }
   })
+
+  // Re-compose when effective print area changes (e.g., model UV bounds computed)
+  watch(
+    () => store.effectivePrintAreaUV,
+    () => {
+      if (loadedImage) recomposeAndApply()
+    },
+  )
 
   return { applyTextureToMeshes }
 }

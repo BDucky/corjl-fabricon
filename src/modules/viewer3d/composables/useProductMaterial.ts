@@ -8,6 +8,9 @@ export function useProductMaterial(
   const store = useViewer3dStore()
 
   function isDesignMesh(child: THREE.Mesh): boolean {
+    // When no design texture is loaded, all meshes can be colored directly
+    if (!store.hasTexture) return false
+
     const activeModel = store.activeModel
     if (!activeModel) return false
 
@@ -57,6 +60,15 @@ export function useProductMaterial(
       applyProductColor(store.productColor)
     }
   })
+
+  // Re-apply when design texture is cleared (texture mapper restores original
+  // material colors on clear, so we need to re-apply the current product color)
+  watch(
+    () => store.hasTexture,
+    (has) => {
+      if (!has) applyProductColor(store.productColor)
+    },
+  )
 
   return { applyProductColor }
 }

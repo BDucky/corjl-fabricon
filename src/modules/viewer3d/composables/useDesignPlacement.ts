@@ -9,13 +9,13 @@ export function useDesignPlacement() {
 
   function centerDesign() {
     store.setTextureMappingConfig({
-      offsetX: 0,
-      offsetY: 0,
+      offsetX: 0.5,
+      offsetY: 0.5,
     })
   }
 
   function resetPlacement() {
-    store.resetTextureMapping()
+    store.autoFitDesign()
   }
 
   return {

@@ -54,5 +54,15 @@ export function useURLParams() {
         // Silently fail — user can upload manually
       }
     }
+
+    // Opening a design via /editor/:designId should always pick the
+    // highest-match product for the design just loaded — the Pinia store
+    // persists activeModelId across navigations, so without this the viewer
+    // would stick on whatever model the user picked in the previous session.
+    // productSuggestions is sorted by score desc; if the design didn't load,
+    // it returns all models with a neutral score and we still fall back to a
+    // visible bundled model so the viewer isn't empty.
+    const best = store.productSuggestions[0]?.model ?? BUNDLED_MODELS.find((m) => !m.hidden)
+    if (best) store.selectModel(best.id)
   })
 }

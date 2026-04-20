@@ -11,6 +11,7 @@ import type {
   DesignInput,
   ProductSuggestion,
   TurntableExportOptions,
+  PrintAreaUV,
 } from './types'
 import {
   BUNDLED_MODELS,
@@ -62,6 +63,10 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   const turntableFrameCount = ref(36)
   const turntableFrameDelay = ref(80)
 
+  // Print area state (auto-computed from model UV geometry)
+  const computedPrintAreaUV = ref<PrintAreaUV | null>(null)
+  const computedFlipV = ref(false)
+
   // Texture state
   const textureUrl = ref<string | null>(null)
   const textureMappingConfig = ref<TextureMappingConfig>({ ...DEFAULT_TEXTURE_MAPPING })
@@ -85,6 +90,20 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   const hasModel = computed(() => !!activeModelId.value)
   const hasDesign = computed(() => !!designImageUrl.value)
 
+  /** Effective print area: manual override → auto-computed → full canvas fallback */
+  const effectivePrintAreaUV = computed<PrintAreaUV>(() => {
+    const modelId = activeModelId.value
+    const manualOverride = modelId ? MODEL_TEXTURE_DEFAULTS[modelId]?.printAreaUV : undefined
+    return manualOverride ?? computedPrintAreaUV.value ?? { minU: 0, maxU: 1, minV: 0, maxV: 1 }
+  })
+
+  /** Effective flipV: manual override → auto-detected → false */
+  const effectiveFlipV = computed<boolean>(() => {
+    const modelId = activeModelId.value
+    const manual = modelId ? MODEL_TEXTURE_DEFAULTS[modelId]?.flipV : undefined
+    return manual ?? computedFlipV.value
+  })
+
   const activeLightingPreset = computed(() =>
     LIGHTING_PRESETS.find((p) => p.id === lightingPresetId.value) ?? LIGHTING_PRESETS[0],
   )
@@ -100,9 +119,10 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
 
   const productSuggestions = computed<ProductSuggestion[]>(() => {
     const ratio = designAspectRatio.value
-    if (ratio === null) return BUNDLED_MODELS.map((m) => ({ model: m, score: 50, reason: 'No design loaded' }))
+    const visibleModels = BUNDLED_MODELS.filter((m) => !m.hidden)
+    if (ratio === null) return visibleModels.map((m) => ({ model: m, score: 50, reason: 'No design loaded' }))
 
-    return BUNDLED_MODELS.map((model) => {
+    return visibleModels.map((model) => {
       const profile = ASPECT_RATIO_PROFILES[model.id]
       if (!profile) return { model, score: 50, reason: 'Compatible' }
 
@@ -157,83 +177,24 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   }
 
   function autoFitDesign() {
-    const dims = designDimensions.value
-    if (!dims) return
+    if (!designDimensions.value) return
 
-    const designRatio = dims.width / dims.height
     const modelId = activeModelId.value
     const defaults = modelId ? MODEL_TEXTURE_DEFAULTS[modelId] : null
-
-    if (!defaults) {
-      // Fallback: generic fit (no model-specific data)
-      if (designRatio > 1) {
-        textureMappingConfig.value = {
-          repeatX: 1,
-          repeatY: 1 / designRatio,
-          offsetX: 0,
-          offsetY: (1 - 1 / designRatio) / 2,
-          rotation: 0,
-        }
-      } else {
-        textureMappingConfig.value = {
-          repeatX: designRatio,
-          repeatY: 1,
-          offsetX: (1 - designRatio) / 2,
-          offsetY: 0,
-          rotation: 0,
-        }
-      }
-      return
-    }
-
-    // Model-aware fit: compare design ratio to printable area ratio
-    const areaRatio = defaults.areaAspectRatio
-    const fitRatio = designRatio / areaRatio
-
-    let repeatX: number
-    let repeatY: number
-
-    if (fitRatio >= 1) {
-      // Design is wider than printable area — fit to width, shrink height
-      repeatX = defaults.maxRepeatX
-      repeatY = Math.min(defaults.maxRepeatX / fitRatio, defaults.maxRepeatY)
-    } else {
-      // Design is taller than printable area — fit to height, shrink width
-      repeatY = defaults.maxRepeatY
-      repeatX = Math.min(defaults.maxRepeatY * fitRatio, defaults.maxRepeatX)
-    }
-
-    // Flip V-axis for models with inverted UVs
-    if (defaults.flipV) {
-      repeatY = -repeatY
-    }
-
-    // Center the design within the UV space, then apply model's default offset
-    let offsetX = (1 - Math.abs(repeatX)) / 2 + defaults.defaultOffsetX
-    let offsetY = defaults.flipV
-      ? (1 + Math.abs(repeatY)) / 2 + defaults.defaultOffsetY
-      : (1 - repeatY) / 2 + defaults.defaultOffsetY
-
-    // Remap repeat/offset into the actual UV region of the printable area
-    if (defaults.printAreaUV) {
-      const { minU, maxU, minV, maxV } = defaults.printAreaUV
-      const rangeU = maxU - minU
-      const rangeV = maxV - minV
-      const baseRepeatX = repeatX
-      const baseRepeatY = repeatY
-      repeatX = baseRepeatX / rangeU
-      repeatY = baseRepeatY / rangeV
-      offsetX = offsetX - minU * (baseRepeatX / rangeU)
-      offsetY = offsetY - minV * (baseRepeatY / rangeV)
-    }
+    const decorationScale = defaults?.decorationScale ?? 0.80
 
     textureMappingConfig.value = {
-      repeatX,
-      repeatY,
-      offsetX,
-      offsetY,
+      repeatX: decorationScale,
+      repeatY: decorationScale,
+      offsetX: 0.5,
+      offsetY: 0.5,
       rotation: 0,
     }
+  }
+
+  function setComputedPrintArea(uv: PrintAreaUV | null, flipV = false) {
+    computedPrintAreaUV.value = uv
+    computedFlipV.value = flipV
   }
 
   function toggleAutoRotate() {
@@ -317,7 +278,9 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   function setDesignFromUrl(url: string): Promise<DesignInput> {
     return new Promise((resolve, reject) => {
       const img = new Image()
-      img.crossOrigin = 'anonymous'
+      // Intentionally omit crossOrigin here — we only need naturalWidth/Height,
+      // which works without CORS. The compositor's own image load in
+      // useTextureMapper handles crossOrigin for canvas sampling.
       img.onload = () => {
         designImageUrl.value = url
         designDimensions.value = { width: img.naturalWidth, height: img.naturalHeight }
@@ -366,6 +329,8 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     showPrintArea.value = false
     turntableFrameCount.value = 36
     turntableFrameDelay.value = 80
+    computedPrintAreaUV.value = null
+    computedFlipV.value = false
     textureMappingConfig.value = { ...DEFAULT_TEXTURE_MAPPING }
     exportSettings.value = { ...DEFAULT_EXPORT_SETTINGS }
     isExporting.value = false
@@ -409,8 +374,11 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     activeCameraPreset,
     designAspectRatio,
     productSuggestions,
+    effectivePrintAreaUV,
+    effectiveFlipV,
     // Actions
     selectModel,
+    setComputedPrintArea,
     setLightingPreset,
     setCameraPreset,
     setTextureUrl,

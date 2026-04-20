@@ -94,6 +94,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import BaseModal from '@components/ui/BaseModal.vue'
 import { useViewer3dStore } from '../store'
 import { BUNDLED_MODELS, MODEL_TEXTURE_DEFAULTS } from '../constants'
+import { composeDesignCanvas } from '../utils/textureCompositor'
+import { computeUVBounds } from '../utils/computeUVBounds'
+import { generatePlanarUVs } from '../utils/generatePlanarUVs'
+import { generateCylindricalUVs } from '../utils/generateCylindricalUVs'
 import type { BatchPreviewItem } from '../types'
 
 const props = defineProps<{
@@ -147,16 +151,19 @@ async function generate() {
 
   const offCamera = new THREE.PerspectiveCamera(45, 1, 0.01, 100)
 
-  // Load design texture once
-  let designTexture: THREE.Texture | null = null
+  // Load design image once for the compositor
+  let designImage: HTMLImageElement | null = null
   if (store.textureUrl) {
-    const loader = new THREE.TextureLoader()
     try {
-      designTexture = await loader.loadAsync(store.textureUrl)
-      designTexture.flipY = false
-      designTexture.colorSpace = THREE.SRGBColorSpace
+      designImage = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image()
+        img.crossOrigin = 'anonymous'
+        img.onload = () => resolve(img)
+        img.onerror = () => reject(new Error('Failed to load design image'))
+        img.src = store.textureUrl!
+      })
     } catch {
-      designTexture = null
+      designImage = null
     }
   }
 
@@ -195,9 +202,49 @@ async function generate() {
       object.scale.multiplyScalar(scale)
       object.position.sub(center.multiplyScalar(scale))
 
-      // Apply texture if available
-      if (designTexture) {
+      // Apply design via compositor (same pipeline as main viewer)
+      if (designImage) {
         const defaults = MODEL_TEXTURE_DEFAULTS[model.id]
+        const decorationScale = defaults?.decorationScale ?? 0.80
+
+        // Generate procedural UVs for any target mesh that lacks usable UVs
+        // (e.g. the standee front panel or the coffee mug body) so the design has
+        // somewhere to map to. Per-model overrides via MODEL_TEXTURE_DEFAULTS.
+        const projection = defaults?.uvProjection ?? 'auto'
+        object.traverse((child) => {
+          if (!(child instanceof THREE.Mesh)) return
+          const matName = (child.material as THREE.MeshStandardMaterial)?.name
+          const isTargetMesh = model.targetMeshNames.includes(child.name) ||
+            (model.targetMaterialNames?.includes(matName ?? '') ?? false)
+          if (!isTargetMesh) return
+          if (projection === 'cylindrical-y') {
+            generateCylindricalUVs(child.geometry)
+          } else {
+            generatePlanarUVs(child.geometry)
+          }
+        })
+
+        const manualPrintArea = defaults?.printAreaUV
+        const autoPrintArea = computeUVBounds(object, model.targetMeshNames, model.targetMaterialNames ?? [])
+        const printAreaUV = manualPrintArea ?? autoPrintArea ?? { minU: 0, maxU: 1, minV: 0, maxV: 1 }
+
+        const canvas = composeDesignCanvas(designImage, {
+          designScale: decorationScale,
+          offsetX: 0.5,
+          offsetY: 0.5,
+          rotation: 0,
+          fill: false,
+          backgroundColor: store.productColor,
+          flipV: defaults?.flipV,
+          printAreaUV,
+        })
+
+        const canvasTex = new THREE.CanvasTexture(canvas)
+        canvasTex.colorSpace = THREE.SRGBColorSpace
+        canvasTex.flipY = false
+        canvasTex.wrapS = THREE.ClampToEdgeWrapping
+        canvasTex.wrapT = THREE.ClampToEdgeWrapping
+
         object.traverse((child) => {
           if (!(child instanceof THREE.Mesh)) return
           const isTarget = model.targetMeshNames.includes(child.name) ||
@@ -208,19 +255,8 @@ async function generate() {
           if (!isTarget) return
 
           const mat = (child.material as THREE.MeshStandardMaterial).clone()
-          const tex = designTexture!.clone()
-          tex.needsUpdate = true
-          if (defaults) {
-            tex.repeat.set(defaults.maxRepeatX, defaults.flipV ? -defaults.maxRepeatY : defaults.maxRepeatY)
-            const oX = (1 - Math.abs(defaults.maxRepeatX)) / 2 + defaults.defaultOffsetX
-            const oY = defaults.flipV
-              ? (1 + Math.abs(defaults.maxRepeatY)) / 2 + defaults.defaultOffsetY
-              : (1 - defaults.maxRepeatY) / 2 + defaults.defaultOffsetY
-            tex.offset.set(oX, oY)
-          }
-          tex.wrapS = THREE.RepeatWrapping
-          tex.wrapT = THREE.RepeatWrapping
-          mat.map = tex
+          mat.map = canvasTex
+          mat.color.set(0xffffff)
           mat.needsUpdate = true
           child.material = mat
         })
@@ -267,9 +303,8 @@ async function generate() {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))
   }
 
-  // Dispose offscreen renderer and texture
+  // Dispose offscreen renderer
   offRenderer.dispose()
-  if (designTexture) designTexture.dispose()
 
   isGenerating.value = false
 }

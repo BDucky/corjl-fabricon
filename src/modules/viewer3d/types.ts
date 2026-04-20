@@ -12,6 +12,8 @@ export interface ModelInfo {
   /** Material names that should receive the user's texture (used when mesh names are generic) */
   targetMaterialNames?: string[]
   bundled: boolean
+  /** When true, model is excluded from the product suggestions list */
+  hidden?: boolean
 }
 
 export interface TextureMappingConfig {
@@ -84,16 +86,27 @@ export interface ProductColorPreset {
   hex: string
 }
 
+export interface PrintAreaUV {
+  minU: number
+  maxU: number
+  minV: number
+  maxV: number
+}
+
 export interface ModelTextureDefaults {
-  areaAspectRatio: number  // width/height of the printable area on the model
-  maxRepeatX: number       // max UV repeat along X
-  maxRepeatY: number       // max UV repeat along Y
-  defaultOffsetX: number   // center offset X
-  defaultOffsetY: number   // center offset Y
-  flipV?: boolean          // flip texture vertically (for models with inverted V-axis UVs)
-  /** Actual UV bounds of the printable area on the target mesh.
-   *  When set, autoFitDesign remaps repeat/offset into this region. */
-  printAreaUV?: { minU: number; maxU: number; minV: number; maxV: number }
+  /** Manual UV bounds override. When set, takes precedence over auto-computed bounds. */
+  printAreaUV?: PrintAreaUV
+  /** Fraction of print area the design fills in decoration mode (default 0.80) */
+  decorationScale?: number
+  /** Flip texture vertically (for models with inverted V-axis UVs) */
+  flipV?: boolean
+  /**
+   * Forces a specific procedural UV projection on the target meshes at load time:
+   * - 'planar': flat-panel projection (auto-detected by default for thin meshes)
+   * - 'cylindrical-y': wrap around the Y axis (for mugs, cans, bottles)
+   * - 'auto' (default): try planar; otherwise leave existing UVs alone
+   */
+  uvProjection?: 'planar' | 'cylindrical-y' | 'auto'
 }
 
 export interface ExportAngle {

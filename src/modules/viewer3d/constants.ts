@@ -102,6 +102,7 @@ export const BUNDLED_MODELS: ModelInfo[] = [
     targetMeshNames: ['Object_2'],
     targetMaterialNames: ['FABRIC_3_FRONT_2680'],
     bundled: true,
+    hidden: true,
   },
   {
     id: 'totebag',
@@ -151,22 +152,92 @@ export const BUNDLED_MODELS: ModelInfo[] = [
 ]
 
 export const MODEL_TEXTURE_DEFAULTS: Record<string, ModelTextureDefaults> = {
-  tshirt:       { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
-  polo:         { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
-  hoodie:       { areaAspectRatio: 0.9,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
-  tanktop:      { areaAspectRatio: 0.75, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, printAreaUV: { minU: 0.018, maxU: 0.983, minV: 0.668, maxV: 0.923 } },
-  totebag:      { areaAspectRatio: 0.85, maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true },
-  phonecase:    { areaAspectRatio: 0.5,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0, flipV: true, printAreaUV: { minU: 0.486, maxU: 0.958, minV: 0.033, maxV: 0.966 } },
-  coffeemug:    { areaAspectRatio: 3.0,  maxRepeatX: 1, maxRepeatY: 0.6, defaultOffsetX: 0, defaultOffsetY: 0.2 },
-  cardboardbox: { areaAspectRatio: 1.5,  maxRepeatX: 1, maxRepeatY: 0.7, defaultOffsetX: 0, defaultOffsetY: 0.15 },
-  standee:      { areaAspectRatio: 0.6,  maxRepeatX: 1, maxRepeatY: 1, defaultOffsetX: 0, defaultOffsetY: 0 },
+  // T-shirt: front panel UV centroid measured at (0.262, 0.256). Print area is sized to
+  // cover the chest region without extending too far into the collar/waist.
+  tshirt: {
+    printAreaUV: { minU: 0.08, maxU: 0.44, minV: 0.14, maxV: 0.38 },
+    decorationScale: 0.85,
+  },
+  // Polo: UVs span [-2.3, 2.3] with tiling; only the [0,1] tile is sampled (clamp wrap).
+  // Front-chest centroid measured at (0.574, 0.479). Print area is centered on the
+  // centroid and sized to fill most of the [0,1] tile so the design covers as much of
+  // the chest as the polo's UV layout allows.
+  polo: {
+    printAreaUV: { minU: 0.25, maxU: 0.90, minV: 0.10, maxV: 0.85 },
+    flipV: true,
+    decorationScale: 0.80,
+  },
+  // Hoodie: 3 target meshes share UV space U[0.009, 0.991] V[0.009, 0.846].
+  // Combined front-chest centroid is (0.509, 0.622). Print area is centered exactly on
+  // the centroid and widened (was 0.30×0.28, now 0.42×0.40) so the design appears
+  // visibly large on the chest rather than as a small mark in the middle.
+  hoodie: {
+    printAreaUV: { minU: 0.30, maxU: 0.72, minV: 0.42, maxV: 0.82 },
+    flipV: true,
+    decorationScale: 0.85,
+  },
+  // Tank top: hidden — front panel mesh maps to a narrow horizontal UV band.
+  tanktop: {
+    printAreaUV: { minU: 0.018, maxU: 0.983, minV: 0.668, maxV: 0.923 },
+    decorationScale: 0.80,
+  },
+  // Tote bag: front face (Object_27) fills nearly full UV [0.01, 0.99]. Margins keep
+  // the design clear of seams and handles.
+  totebag: {
+    printAreaUV: { minU: 0.05, maxU: 0.95, minV: 0.15, maxV: 0.85 },
+    flipV: true,
+    decorationScale: 0.75,
+  },
+  // Phone case: back panel occupies the right half of UV space.
+  phonecase: {
+    printAreaUV: { minU: 0.486, maxU: 0.958, minV: 0.033, maxV: 0.966 },
+    flipV: true,
+    decorationScale: 0.85,
+  },
+  // Coffee mug: ships with degenerate UVs (all zeros). We force a cylindrical-Y
+  // projection so the design wraps around the mug body. The cylindrical generator runs
+  // in WORLD space (the mug's local Y is horizontal — its true up axis is local Z, which
+  // the parent matrix maps to world Y), so U/V here are in the world-Y cylindrical space.
+  //
+  // The seam (U=0/U=1) sits on the -X side. The camera's view direction projected onto
+  // the XZ plane points roughly +X+Z (45° preset uses offset +X*0.5 +Y*0.4 +Z*1.0), so
+  // the camera-facing centerline of the mug is at u ≈ 0.676. The print area is a ~90°
+  // arc centered on that point, large enough that the design is visibly prominent on
+  // the front of the mug rather than appearing as a tiny label.
+  // The cylindrical generator masks interior surfaces (verts at < 92% of the max radius)
+  // so the design doesn't bleed onto the inside of the cup.
+  coffeemug: {
+    uvProjection: 'cylindrical-y',
+    printAreaUV: { minU: 0.55, maxU: 0.80, minV: 0.22, maxV: 0.78 },
+    decorationScale: 0.85,
+  },
+  // Cardboard box: all 3 box meshes share UV U[0.114, 0.937] V[0.077, 0.932].
+  // The +Z (front) face occupies U[0.115-0.937] V[0.418-0.932] with centroid (0.459, 0.605).
+  // Per-face analysis: V increases going UP on the box (top face +Y centroid V=0.765,
+  // bottom face -Y centroid V=0.111), so flipV=true is needed to draw the design
+  // right-side up on the front. Print area is centered exactly on the centroid so the
+  // design lands in the middle of the front face rather than the upper-third.
+  cardboardbox: {
+    printAreaUV: { minU: 0.16, maxU: 0.76, minV: 0.42, maxV: 0.79 },
+    flipV: true,
+    decorationScale: 0.85,
+  },
+  // Standee: target mesh (material "material") ships without UV data, so the texture
+  // mapper generates planar UVs from the panel geometry at load time. The generator
+  // runs in WORLD space because the standee's local Y is the panel normal (it's the
+  // tiny ~0.04-unit dimension), while local Z is the up axis — the parent matrix
+  // rotates so world Y matches local Z. The print area is left unset so it falls back
+  // to the auto-computed bounds from the generated planar UVs.
+  standee: {
+    decorationScale: 0.90,
+  },
 }
 
 export const DEFAULT_TEXTURE_MAPPING: TextureMappingConfig = {
-  offsetX: 0,
-  offsetY: 0,
-  repeatX: 1,
-  repeatY: 1,
+  offsetX: 0.5,
+  offsetY: 0.5,
+  repeatX: 0.5,
+  repeatY: 0.5,
   rotation: 0,
 }
 

@@ -14,20 +14,18 @@ const PRINT_AREA_FRAGMENT_SHADER = /* glsl */ `
   uniform vec3 uBorderColor;
   uniform float uBorderWidth;
   uniform float uOpacity;
-  uniform vec2 uAreaOffset;
-  uniform vec2 uAreaRepeat;
+  uniform vec2 uMinUV;
+  uniform vec2 uMaxUV;
 
   varying vec2 vUv;
 
   void main() {
-    // Map UV to the design area space
-    vec2 areaUv = (vUv - uAreaOffset) / uAreaRepeat;
+    // Normalize UV to [0,1] within the print area
+    vec2 areaSize = uMaxUV - uMinUV;
+    vec2 areaUv = (vUv - uMinUV) / areaSize;
 
-    // Check if we're inside the design area
-    bool insideX = areaUv.x >= 0.0 && areaUv.x <= 1.0;
-    bool insideY = areaUv.y >= 0.0 && areaUv.y <= 1.0;
-
-    if (!insideX || !insideY) {
+    // Check if we're inside the print area
+    if (areaUv.x < 0.0 || areaUv.x > 1.0 || areaUv.y < 0.0 || areaUv.y > 1.0) {
       discard;
     }
 
@@ -40,12 +38,7 @@ const PRINT_AREA_FRAGMENT_SHADER = /* glsl */ `
     }
 
     // Dashed pattern
-    float edgeDist;
-    if (areaUv.x < bw || areaUv.x > (1.0 - bw)) {
-      edgeDist = areaUv.y;
-    } else {
-      edgeDist = areaUv.x;
-    }
+    float edgeDist = (areaUv.x < bw || areaUv.x > (1.0 - bw)) ? areaUv.y : areaUv.x;
     float dashPattern = step(0.5, fract(edgeDist * 20.0));
 
     if (dashPattern < 0.5) {
@@ -76,7 +69,7 @@ export function usePrintAreaOverlay(getCurrentModel: () => THREE.Object3D | null
     const targetMesh = findTargetMesh(model)
     if (!targetMesh) return
 
-    const config = store.textureMappingConfig
+    const printArea = store.effectivePrintAreaUV
     const geometry = targetMesh.geometry.clone()
 
     const material = new THREE.ShaderMaterial({
@@ -86,8 +79,8 @@ export function usePrintAreaOverlay(getCurrentModel: () => THREE.Object3D | null
         uBorderColor: { value: new THREE.Color(0x00cccc) },
         uBorderWidth: { value: 0.02 },
         uOpacity: { value: 0.6 },
-        uAreaOffset: { value: new THREE.Vector2(config.offsetX, config.offsetY) },
-        uAreaRepeat: { value: new THREE.Vector2(Math.abs(config.repeatX), Math.abs(config.repeatY)) },
+        uMinUV: { value: new THREE.Vector2(printArea.minU, printArea.minV) },
+        uMaxUV: { value: new THREE.Vector2(printArea.maxU, printArea.maxV) },
       },
       transparent: true,
       depthWrite: false,
@@ -125,10 +118,10 @@ export function usePrintAreaOverlay(getCurrentModel: () => THREE.Object3D | null
 
   function updateUniforms() {
     if (!overlayMesh) return
-    const config = store.textureMappingConfig
+    const printArea = store.effectivePrintAreaUV
     const material = overlayMesh.material as THREE.ShaderMaterial
-    material.uniforms.uAreaOffset.value.set(config.offsetX, config.offsetY)
-    material.uniforms.uAreaRepeat.value.set(Math.abs(config.repeatX), Math.abs(config.repeatY))
+    material.uniforms.uMinUV.value.set(printArea.minU, printArea.minV)
+    material.uniforms.uMaxUV.value.set(printArea.maxU, printArea.maxV)
   }
 
   // Watch show/hide
@@ -150,8 +143,8 @@ export function usePrintAreaOverlay(getCurrentModel: () => THREE.Object3D | null
     }
   })
 
-  // Update uniforms when texture mapping changes
-  watch(() => store.textureMappingConfig, () => {
+  // Update uniforms when effective print area changes
+  watch(() => store.effectivePrintAreaUV, () => {
     if (store.showPrintArea) {
       updateUniforms()
     }

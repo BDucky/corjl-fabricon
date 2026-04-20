@@ -112,31 +112,56 @@ export function useModelLoader(
     return names
   }
 
-  // Watch store.activeModel and reactively load
-  watch(
-    () => store.activeModel,
-    async (model) => {
-      const s = scene()
-      const cam = camera()
-      const ctrl = controls()
-      if (!s) return
+  // Tracks the last model id we actually loaded into the CURRENT scene instance.
+  // This is scoped to this composable (per ThreeViewer mount), so remounting the
+  // viewer — e.g. navigating /editor → /designs → /editor — resets it and re-loads
+  // even when the store's activeModelId was persisted from the previous session.
+  let loadedForSceneModelId: string | null = null
 
+  async function ensureLoaded() {
+    const s = scene()
+    const cam = camera()
+    const ctrl = controls()
+    if (!s) return
+
+    const model = store.activeModel
+    if (!model) {
       removeCurrentModel()
+      loadedForSceneModelId = null
+      return
+    }
 
-      if (!model) return
+    if (loadedForSceneModelId === model.id && currentModel.value) return
 
-      try {
-        const loaded = await loadModel(model)
-        currentModel.value = loaded
-        s.add(loaded)
+    removeCurrentModel()
+    loadedForSceneModelId = model.id
 
-        if (cam && ctrl) {
-          fitCameraToModel(loaded, cam, ctrl)
-        }
-      } catch (err) {
-        console.error('Failed to load model:', err)
+    try {
+      const loaded = await loadModel(model)
+      // Guard against a newer model change while we were loading.
+      if (loadedForSceneModelId !== model.id) {
+        disposeObject3D(loaded)
+        return
       }
+      currentModel.value = loaded
+      s.add(loaded)
+      if (cam && ctrl) fitCameraToModel(loaded, cam, ctrl)
+    } catch (err) {
+      console.error('Failed to load model:', err)
+      loadedForSceneModelId = null
+    }
+  }
+
+  // Fires on activeModel change AND on scene initialization. The second trigger
+  // is what fixes the "model doesn't render after navigating back to /editor"
+  // bug: the Pinia store persists activeModelId across routes, so activeModel
+  // doesn't change — but the ThreeViewer is fresh and has no model in its scene.
+  watch(
+    [() => store.activeModel, scene],
+    () => {
+      void ensureLoaded()
     },
+    { immediate: true },
   )
 
   return {
