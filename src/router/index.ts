@@ -6,7 +6,6 @@ const LoginView = () => import('@/views/LoginView.vue')
 const SignupView = () => import('@/views/SignupView.vue')
 const EditorView = () => import('@/views/EditorView.vue')
 const MyDesignsView = () => import('@/views/MyDesignsView.vue')
-const TemplatesView = () => import('@/views/TemplatesView.vue')
 
 const routes: RouteRecordRaw[] = [
   {
@@ -32,12 +31,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, transition: 'page-fade' },
   },
   {
-    path: '/templates',
-    name: 'Templates',
-    component: TemplatesView,
-    meta: { requiresAuth: true, transition: 'page-fade' },
-  },
-  {
     path: '/editor/:designId',
     name: 'Editor',
     component: EditorView,
@@ -45,7 +38,7 @@ const routes: RouteRecordRaw[] = [
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/projects',
+    redirect: '/designs',
   },
 ]
 
