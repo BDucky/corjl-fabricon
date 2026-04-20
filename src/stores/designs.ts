@@ -16,6 +16,10 @@ import type {
 const CDN_URL = (import.meta.env.VITE_CDN_URL as string) || ''
 const PAGE_SIZE = 50
 
+/** Default thumbnail shown for designs with no preview. Mirrors the
+ *  webapp's DESIGN_DEFAULT_THUMBNAIL (corjl-webapp packages/core/common/constants.ts). */
+export const DESIGN_DEFAULT_THUMBNAIL = `${CDN_URL}/cdn/images/thumbnails/DesignThumbnail.jpg`
+
 export const useDesignsStore = defineStore('designs', () => {
   // State
   const designs = ref<DesignListItem[]>([])
