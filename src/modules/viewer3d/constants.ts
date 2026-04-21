@@ -139,6 +139,7 @@ export const BUNDLED_MODELS: ModelInfo[] = [
     targetMeshNames: ['Box_Material_0', 'Box.Big_Material_0', 'Box.Small_Material_0'],
     targetMaterialNames: ['Material'],
     bundled: true,
+    hidden: true,
   },
   {
     id: 'standee',
