@@ -210,6 +210,13 @@ export const MODEL_TEXTURE_DEFAULTS: Record<string, ModelTextureDefaults> = {
     uvProjection: 'cylindrical-y',
     printAreaUV: { minU: 0.55, maxU: 0.80, minV: 0.22, maxV: 0.78 },
     decorationScale: 0.85,
+    // The GLB is a SketchUp export with a zero-thickness, inside-out wall.
+    // Applying the texture to the mug itself causes the design to show on
+    // both sides (DoubleSide + shared UVs), making it visible on the inside
+    // through the opening. Render the design on a separate outer shell mesh
+    // instead — the underlying mug stays untouched and the design only shows
+    // on the outside, which is how real mugs are printed.
+    decorationShell: true,
   },
   // Cardboard box: all 3 box meshes share UV U[0.114, 0.937] V[0.077, 0.932].
   // The +Z (front) face occupies U[0.115-0.937] V[0.418-0.932] with centroid (0.459, 0.605).

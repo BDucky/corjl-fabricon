@@ -7,6 +7,8 @@ import { computeUVBounds } from '../utils/computeUVBounds'
 import { generatePlanarUVs } from '../utils/generatePlanarUVs'
 import { generateCylindricalUVs } from '../utils/generateCylindricalUVs'
 
+const SHELL_MARKER = '__decoration_shell__'
+
 export function useTextureMapper(
   getCurrentModel: () => THREE.Group | null,
 ) {
@@ -56,9 +58,39 @@ export function useTextureMapper(
     return meshes
   }
 
-  function applyTextureToMeshes(texture: THREE.CanvasTexture | null) {
-    const meshes = getTargetMeshes()
+  /** Returns true iff the active model renders its design via an outer shell. */
+  function usesShellDecoration(): boolean {
+    const id = store.activeModelId
+    return !!(id && MODEL_TEXTURE_DEFAULTS[id]?.decorationShell)
+  }
 
+  /** Returns the shell meshes currently attached to target meshes of the active model. */
+  function getShellMeshes(): THREE.Mesh[] {
+    const shells: THREE.Mesh[] = []
+    for (const target of getTargetMeshes()) {
+      for (const child of target.children) {
+        if (child instanceof THREE.Mesh && child.name === SHELL_MARKER) {
+          shells.push(child)
+        }
+      }
+    }
+    return shells
+  }
+
+  function applyTextureToMeshes(texture: THREE.CanvasTexture | null) {
+    // Shell-decorated models (coffee mug): apply texture only to the shell,
+    // leaving the underlying mug's materials 100% untouched.
+    if (usesShellDecoration()) {
+      for (const shell of getShellMeshes()) {
+        const mat = shell.material as THREE.MeshStandardMaterial
+        mat.map = texture
+        shell.visible = texture !== null
+        mat.needsUpdate = true
+      }
+      return
+    }
+
+    const meshes = getTargetMeshes()
     for (const mesh of meshes) {
       const current = mesh.material as THREE.MeshStandardMaterial
       if (!current.isMeshStandardMaterial) continue
@@ -87,6 +119,110 @@ export function useTextureMapper(
         }
         current.needsUpdate = true
       }
+    }
+  }
+
+  /**
+   * Build a decoration shell: a thin outer replica of the target mesh, with
+   * cylindrical UVs and a MeshStandardMaterial ready to receive the design.
+   * The shell sits just outside the target's wall (world-XZ radial offset) so
+   * it can only be seen from outside — it's occluded by the original mug
+   * walls when viewed through the opening.
+   */
+  function createDecorationShell(target: THREE.Mesh): THREE.Mesh {
+    const geom = target.geometry.clone()
+    // Radial offset in world units. Empirically 0.006 was too small to win the
+    // z-fight against the underlying mug wall (the shell never rendered on
+    // top). 0.1 is the confirmed-working value — slightly noticeable against
+    // the mug's ~0.87-unit radius (model is normalized to max-dim 2) but
+    // reliable on every tested GPU.
+    expandRadiallyInWorldXZ(geom, target.matrixWorld, 0.1)
+    generateCylindricalUVs(geom, target.matrixWorld)
+    geom.computeBoundingBox()
+    geom.computeBoundingSphere()
+
+    const material = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      roughness: 0.7,
+      metalness: 0,
+      side: THREE.DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    })
+
+    const shell = new THREE.Mesh(geom, material)
+    shell.name = SHELL_MARKER
+    shell.userData.isDecorationShell = true
+    shell.raycast = () => { /* no-op */ }
+    shell.visible = true
+    target.add(shell)
+    return shell
+  }
+
+  /** Push each vertex outward in the world XZ plane (cylinder axis = world Y). */
+  function expandRadiallyInWorldXZ(
+    geom: THREE.BufferGeometry,
+    worldMatrix: THREE.Matrix4,
+    epsilon: number,
+  ) {
+    const pos = geom.getAttribute('position') as THREE.BufferAttribute
+    const normalAttr = geom.getAttribute('normal') as THREE.BufferAttribute | null
+    const normalMatrix = normalAttr ? new THREE.Matrix3().getNormalMatrix(worldMatrix) : null
+    const inv = new THREE.Matrix4().copy(worldMatrix).invert()
+    const v = new THREE.Vector3()
+    const n = new THREE.Vector3()
+
+    // Pass 1: find the world-XZ axis of the cylinder (center point).
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity
+    for (let i = 0; i < pos.count; i++) {
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(worldMatrix)
+      if (v.x < minX) minX = v.x
+      if (v.x > maxX) maxX = v.x
+      if (v.z < minZ) minZ = v.z
+      if (v.z > maxZ) maxZ = v.z
+    }
+    const cx = (minX + maxX) / 2
+    const cz = (minZ + maxZ) / 2
+
+    // Pass 2: push wall verts (non-vertical normal) outward; leave top/bottom
+    // face verts in place so the shell's rim doesn't stick above the mug's.
+    for (let i = 0; i < pos.count; i++) {
+      v.set(pos.getX(i), pos.getY(i), pos.getZ(i)).applyMatrix4(worldMatrix)
+      let isWall = true
+      if (normalAttr) {
+        n.set(normalAttr.getX(i), normalAttr.getY(i), normalAttr.getZ(i))
+        if (normalMatrix) n.applyNormalMatrix(normalMatrix)
+        n.normalize()
+        if (Math.abs(n.y) > 0.85) isWall = false
+      }
+      if (isWall) {
+        const dx = v.x - cx
+        const dz = v.z - cz
+        const r = Math.sqrt(dx * dx + dz * dz)
+        if (r > 0.01) {
+          const k = (r + epsilon) / r
+          v.x = cx + dx * k
+          v.z = cz + dz * k
+        }
+      }
+      v.applyMatrix4(inv)
+      pos.setXYZ(i, v.x, v.y, v.z)
+    }
+    pos.needsUpdate = true
+  }
+
+  /** Remove and dispose any shells currently attached under the given model. */
+  function removeShells(model: THREE.Object3D): void {
+    const shells: THREE.Mesh[] = []
+    model.traverse((child) => {
+      if (child instanceof THREE.Mesh && child.name === SHELL_MARKER) shells.push(child)
+    })
+    for (const shell of shells) {
+      shell.removeFromParent()
+      shell.geometry.dispose()
+      const mat = shell.material as THREE.Material
+      mat.dispose()
     }
   }
 
@@ -206,6 +342,9 @@ export function useTextureMapper(
   watch(getCurrentModel, (model) => {
     if (!model) return
     savedMaterialColors.clear()
+    // Remove any shells left over from a previous mount (shouldn't normally
+    // exist since currentModel is a fresh model, but cheap insurance).
+    removeShells(model)
 
     // Force the parent transform chain to be flushed so mesh.matrixWorld is current
     // before we generate UVs from world-space positions.
@@ -213,18 +352,33 @@ export function useTextureMapper(
 
     const activeModel = store.activeModel
     if (activeModel) {
-      // For target meshes that lack usable UV coordinates (e.g. the standee front
-      // panel or coffee mug body), generate procedural UVs so the design has somewhere
-      // to map to. Per-model overrides via MODEL_TEXTURE_DEFAULTS.uvProjection.
-      // Generators receive the mesh's world matrix so they can project positions into
-      // world space — essential for SketchUp-exported models whose local axes don't
-      // match world up.
-      const projection = MODEL_TEXTURE_DEFAULTS[activeModel.id]?.uvProjection ?? 'auto'
-      for (const mesh of getTargetMeshes()) {
-        if (projection === 'cylindrical-y') {
-          generateCylindricalUVs(mesh.geometry, mesh.matrixWorld)
-        } else {
-          generatePlanarUVs(mesh.geometry, mesh.matrixWorld)
+      const defaults = MODEL_TEXTURE_DEFAULTS[activeModel.id]
+      const useShell = defaults?.decorationShell ?? false
+
+      if (useShell) {
+        // Shell-decorated models (e.g. the coffee mug): build one outer shell
+        // per target mesh. Don't touch the target mesh's own geometry or
+        // material — the underlying GLB renders exactly as the artist
+        // authored it, and the design rides on top of it on the shell.
+        for (const target of getTargetMeshes()) createDecorationShell(target)
+      } else {
+        // Standard path: regenerate UVs on the target mesh itself. Cloning
+        // the geometry sidesteps a three.js pitfall where mutating UVs on a
+        // geometry that's already been rendered leaves the cached VAO / WebGL
+        // attribute bindings pointing at the stale buffer.
+        const projection = defaults?.uvProjection ?? 'auto'
+        for (const mesh of getTargetMeshes()) {
+          const fresh = mesh.geometry.clone()
+          const ok = projection === 'cylindrical-y'
+            ? generateCylindricalUVs(fresh, mesh.matrixWorld)
+            : generatePlanarUVs(fresh, mesh.matrixWorld)
+          if (ok) {
+            const old = mesh.geometry
+            mesh.geometry = fresh
+            old.dispose()
+          } else {
+            fresh.dispose()
+          }
         }
       }
 

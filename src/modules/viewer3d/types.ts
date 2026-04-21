@@ -107,6 +107,17 @@ export interface ModelTextureDefaults {
    * - 'auto' (default): try planar; otherwise leave existing UVs alone
    */
   uvProjection?: 'planar' | 'cylindrical-y' | 'auto'
+  /**
+   * When true, the design is rendered on a thin overlay mesh ("decoration
+   * shell") placed just outside the target mesh's wall, instead of being
+   * applied to the target mesh itself. This is the right fix for GLBs with
+   * zero-thickness walls and/or inside-out winding (SketchUp-origin models
+   * like the coffee mug), where DoubleSide rendering would otherwise show
+   * the design on the inside of the mug through the opening. The shell is
+   * visually invisible when there's no design, and the underlying mesh is
+   * never modified.
+   */
+  decorationShell?: boolean
 }
 
 export interface ExportAngle {

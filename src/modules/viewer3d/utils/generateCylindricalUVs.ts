@@ -78,28 +78,43 @@ export function generateCylindricalUVs(
   const centerX = (minX + maxX) / 2
   const centerZ = (minZ + maxZ) / 2
 
-  // Use vertex normals (if present) to identify outside-body vertices: their normal
-  // points radially outward from the cylinder axis. Interior walls have inward-pointing
-  // normals, top rim and bottom face have vertical normals — none of these should
-  // receive the design.
+  // Classify each vertex as "outside wall" vs not (interior wall / top face / bottom
+  // face). We cannot rely on the normal *direction* because many exported mugs (e.g.
+  // SketchUp-origin GLBs like this one) have inverted winding and only look right
+  // because the material is doubleSided — their outside-wall normals point INWARD,
+  // not outward. Instead use a direction-agnostic classifier:
+  //   - The outside wall sits at the maximum radius from the cylinder axis.
+  //   - Top/bottom face verts are the ones whose world-space normal is (near-)vertical.
+  // Verts that satisfy "at max radius" AND "not vertical-facing" get cylindrical UVs;
+  // everything else (interior wall, rim, base) maps to UV (0, 0) which lands on the
+  // solid product-color background in the compositor canvas.
   const normalAttr = geometry.getAttribute('normal') as THREE.BufferAttribute | null
   const normalMatrix = (normalAttr && worldMatrix)
     ? new THREE.Matrix3().getNormalMatrix(worldMatrix)
     : null
   const wnormal = new THREE.Vector3()
 
-  // Fallback for meshes without normals: assume outside-body verts sit at the maximum
-  // distance from the cylinder axis. Anything below 92% of the max radius is excluded.
-  let maxR = 0
-  if (!normalAttr) {
-    for (let i = 0; i < positions.count; i++) {
-      const dx = wpos[i * 3] - centerX
-      const dz = wpos[i * 3 + 2] - centerZ
-      const r = Math.sqrt(dx * dx + dz * dz)
-      if (r > maxR) maxR = r
+  // First pass: find the maximum radius among vertices whose world normal is
+  // NOT vertical. This is the true "outside wall" radius. Including vertical-
+  // normal verts (top/bottom rim corners) here would inflate the reference and
+  // exclude the actual wall: on the coffee mug the rim corner sits at 100%
+  // maxR while the wall surface is at ~92% maxR, so a naive maxR-based
+  // threshold classifies the entire wall as "interior".
+  let maxWallR = 0
+  for (let i = 0; i < positions.count; i++) {
+    const dx = wpos[i * 3] - centerX
+    const dz = wpos[i * 3 + 2] - centerZ
+    const r = Math.sqrt(dx * dx + dz * dz)
+    let isVertical = false
+    if (normalAttr) {
+      wnormal.set(normalAttr.getX(i), normalAttr.getY(i), normalAttr.getZ(i))
+      if (normalMatrix) wnormal.applyNormalMatrix(normalMatrix)
+      wnormal.normalize()
+      isVertical = Math.abs(wnormal.y) > 0.85
     }
+    if (!isVertical && r > maxWallR) maxWallR = r
   }
-  const radiusThreshold = maxR * 0.92
+  const radiusThreshold = maxWallR * 0.85
 
   const uvs = new Float32Array(positions.count * 2)
   const TWO_PI = Math.PI * 2
@@ -110,21 +125,20 @@ export function generateCylindricalUVs(
     const z = wpos[i * 3 + 2] - centerZ
     const r = Math.sqrt(x * x + z * z)
 
-    let isOutside: boolean
-    if (normalAttr) {
+    // Verts below the radius threshold are interior walls or the base's center —
+    // they shouldn't receive the design.
+    let isOutside = r >= radiusThreshold
+
+    // Exclude top/bottom faces: their world normal points (nearly) along world-Y.
+    // Use |n.y| so the check works whether the geometry is inside-out or not.
+    if (isOutside && normalAttr) {
       wnormal.set(normalAttr.getX(i), normalAttr.getY(i), normalAttr.getZ(i))
       if (normalMatrix) wnormal.applyNormalMatrix(normalMatrix)
       wnormal.normalize()
-      // dot product of the normal with the radial-outward direction (in XZ plane).
-      // > 0.5 means the normal is mostly pointing outward → outside body surface.
-      const radDot = r > 1e-6 ? (wnormal.x * x + wnormal.z * z) / r : 0
-      isOutside = radDot > 0.5
-    } else {
-      isOutside = r >= radiusThreshold
+      if (Math.abs(wnormal.y) > 0.85) isOutside = false
     }
 
     if (!isOutside) {
-      // Interior surface, top rim, or bottom face — sample background-color region
       uvs[i * 2] = 0
       uvs[i * 2 + 1] = 0
       continue

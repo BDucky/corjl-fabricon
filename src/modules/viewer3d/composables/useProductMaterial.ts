@@ -36,6 +36,10 @@ export function useProductMaterial(
 
     model.traverse((child) => {
       if (!(child instanceof THREE.Mesh)) return
+      // Skip decoration shells — their material is owned by useTextureMapper
+      // and its color must stay white so the composited design renders
+      // without a product-color tint on top of it.
+      if (child.userData?.isDecorationShell) return
       if (isDesignMesh(child)) return
 
       const material = child.material as THREE.MeshStandardMaterial
