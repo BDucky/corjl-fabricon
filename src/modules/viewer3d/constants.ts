@@ -353,11 +353,8 @@ export const ENVIRONMENT_PRESETS: EnvironmentPreset[] = [
 // Feature 2: Scene Staging Presets
 export const SCENE_STAGING_PRESETS: SceneStagingPreset[] = [
   { id: 'none', name: 'None' },
-  { id: 'studio-sweep', name: 'Studio Sweep' },
   { id: 'wooden-table', name: 'Wooden Table' },
   { id: 'marble-surface', name: 'Marble Surface' },
-  { id: 'fabric-backdrop', name: 'Fabric Backdrop' },
-  { id: 'gradient-sweep', name: 'Gradient Sweep' },
 ]
 
 // Feature 4: Turntable GIF Export

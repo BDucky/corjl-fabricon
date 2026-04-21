@@ -32,26 +32,38 @@ export function useURLParams() {
 
     // Load design from route param (designId from /editor/:designId)
     if (designId) {
+      // Clear the persisted design synchronously before awaiting the fetch so
+      // the user never sees the previous session's design flash in the viewer,
+      // and an empty/no-thumbnail design lands on a blank mockup instead of
+      // inheriting the prior texture.
+      store.clearDesign()
+      store.setDesignLoading(true)
       try {
         const designsStore = useDesignsStore()
         const detail = await designsStore.fetchDesignDetail(designId)
         if (detail) {
           const thumbnailUrl = designsStore.getPrimaryPageThumbnail(detail)
+          store.designName = detail.designName
           if (thumbnailUrl) {
-            store.designName = detail.designName
             await store.setDesignFromUrl(thumbnailUrl)
           }
         }
       } catch {
         // Silently fail — user can upload manually
+      } finally {
+        store.setDesignLoading(false)
       }
     }
     // Load design from query param (legacy ?design=url support)
     else if (design) {
+      store.clearDesign()
+      store.setDesignLoading(true)
       try {
         await store.setDesignFromUrl(design)
       } catch {
         // Silently fail — user can upload manually
+      } finally {
+        store.setDesignLoading(false)
       }
     }
 

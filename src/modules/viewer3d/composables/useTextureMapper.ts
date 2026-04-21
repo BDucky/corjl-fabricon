@@ -309,6 +309,14 @@ export function useTextureMapper(
 
       try {
         const img = await loadImage(url)
+        // Abort if the textureUrl changed (or was cleared) while loadImage was
+        // in flight. On a fresh editor mount the immediate-watcher fires with
+        // the previous session's persisted URL; useURLParams then clears the
+        // design a microtask later. Without this guard, the pending load
+        // resolves and re-applies the stale design on top of the cleared
+        // state — the bug that made empty-design opens still show the old
+        // design.
+        if (store.textureUrl !== url) return
         loadedImage = img
         loadedImageUrl = url
         recomposeAndApply()

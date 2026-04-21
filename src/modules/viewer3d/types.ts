@@ -137,7 +137,7 @@ export interface EnvironmentPreset {
 }
 
 // Feature 2: Product Scene Staging
-export type SceneStagingPresetId = 'none' | 'studio-sweep' | 'wooden-table' | 'marble-surface' | 'fabric-backdrop' | 'gradient-sweep'
+export type SceneStagingPresetId = 'none' | 'wooden-table' | 'marble-surface'
 
 export interface SceneStagingPreset {
   id: SceneStagingPresetId

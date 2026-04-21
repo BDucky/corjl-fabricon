@@ -30,6 +30,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
   const uploadedModels = ref<ModelInfo[]>([])
   const isModelLoading = ref(false)
   const modelLoadProgress = ref(0)
+  const isDesignLoading = ref(false)
 
   // Design input state
   const designImageUrl = ref<string | null>(null)
@@ -218,6 +219,10 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     modelLoadProgress.value = progress
   }
 
+  function setDesignLoading(loading: boolean) {
+    isDesignLoading.value = loading
+  }
+
   function setProductColor(color: string) {
     productColor.value = color
   }
@@ -343,6 +348,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     uploadedModels,
     isModelLoading,
     modelLoadProgress,
+    isDesignLoading,
     designImageUrl,
     designDimensions,
     designName,
@@ -390,6 +396,7 @@ export const useViewer3dStore = defineStore('viewer3d', () => {
     addUploadedModel,
     setExportSettings,
     setModelLoading,
+    setDesignLoading,
     setProductColor,
     setEnvironmentPreset,
     setEnvironmentIntensity,
