@@ -149,9 +149,14 @@ export function generateCylindricalUVs(
     //   x=0, z>0 → π/2     (+Z side, "front")
     //   x<0, z=0 → ±π      (-X side, the seam)
     //   x=0, z<0 → -π/2    (-Z side)
-    // Map -π..π → 0..1 with +X at U=0.5 so the seam stays at U=0/U=1 on the -X side.
+    // U decreases going CCW around the cylinder (as seen from +Y looking down).
+    // That means on the camera-facing arc (+Z side), U increases from screen
+    // LEFT (-X at U=0) through the camera-facing point to screen RIGHT (+X at
+    // U=0.5) — matching the standard "U increases left-to-right" texture
+    // convention. A naive `angle/TWO_PI + 0.5` formula instead makes U
+    // decrease L→R, which prints the texture mirrored on the mug.
     const angle = Math.atan2(z, x)
-    const u = angle / TWO_PI + 0.5
+    const u = 0.5 - angle / TWO_PI
 
     // V increases downward (image-top at low canvas Y → low UV V → top of mesh).
     const v = (maxY - y) / ySpan

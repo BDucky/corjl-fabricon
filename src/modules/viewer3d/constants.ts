@@ -200,16 +200,14 @@ export const MODEL_TEXTURE_DEFAULTS: Record<string, ModelTextureDefaults> = {
   // in WORLD space (the mug's local Y is horizontal — its true up axis is local Z, which
   // the parent matrix maps to world Y), so U/V here are in the world-Y cylindrical space.
   //
-  // The seam (U=0/U=1) sits on the -X side. The camera's view direction projected onto
-  // the XZ plane points roughly +X+Z (45° preset uses offset +X*0.5 +Y*0.4 +Z*1.0), so
-  // the camera-facing centerline of the mug is at u ≈ 0.676. The print area is a ~90°
-  // arc centered on that point, large enough that the design is visibly prominent on
-  // the front of the mug rather than appearing as a tiny label.
-  // The cylindrical generator masks interior surfaces (verts at < 92% of the max radius)
-  // so the design doesn't bleed onto the inside of the cup.
+  // With the generator's `u = 0.5 - angle/TWO_PI`, the seam (U=0/U=1) sits on the -X
+  // side and the camera-facing +X+Z quadrant (angle-45 preset looks from +X+Z) lands
+  // near u ≈ 0.325. The print area is a ~90° arc offset slightly toward the +Z side of
+  // the camera-facing centerline, large enough that the design reads clearly on the
+  // front of the mug.
   coffeemug: {
     uvProjection: 'cylindrical-y',
-    printAreaUV: { minU: 0.55, maxU: 0.80, minV: 0.22, maxV: 0.78 },
+    printAreaUV: { minU: 0.20, maxU: 0.45, minV: 0.22, maxV: 0.78 },
     decorationScale: 0.85,
     // The GLB is a SketchUp export with a zero-thickness, inside-out wall.
     // Applying the texture to the mug itself causes the design to show on
