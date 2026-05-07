@@ -1,4 +1,5 @@
 import { ref } from 'vue'
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { useViewer3dStore } from '../store'
 import type { DesignInput } from '../types'
 
@@ -42,6 +43,46 @@ export function useDesignInput() {
     }
   }
 
+  async function loadFromCamera(): Promise<DesignInput | null> {
+    isLoading.value = true
+    error.value = null
+
+    try {
+      const photo = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Uri,
+        source: CameraSource.Prompt,
+        promptLabelHeader: 'Add design',
+        promptLabelPhoto: 'Choose from gallery',
+        promptLabelPicture: 'Take photo',
+      })
+
+      const webPath = photo.webPath
+      if (!webPath) throw new Error('No image returned from camera')
+
+      // Wrap the captured photo as a File so the existing setDesignFromFile
+      // path handles blob URL, dimensions, name, auto-fit, and cleanup.
+      const response = await fetch(webPath)
+      const blob = await response.blob()
+      const ext = photo.format || 'jpg'
+      const file = new File([blob], `camera-${Date.now()}.${ext}`, {
+        type: blob.type || `image/${ext}`,
+      })
+
+      const result = await store.setDesignFromFile(file)
+      return result
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : ''
+      // Capacitor throws "User cancelled photos app" on dismissal — not an error.
+      if (/cancel/i.test(msg)) return null
+      error.value = msg || 'Failed to capture photo'
+      return null
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   function clearDesign() {
     store.clearDesign()
     error.value = null
@@ -52,6 +93,7 @@ export function useDesignInput() {
     error,
     loadFromFile,
     loadFromUrl,
+    loadFromCamera,
     clearDesign,
   }
 }
