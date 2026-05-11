@@ -79,7 +79,7 @@ export interface EditorObject {
 }
 
 export interface ViewMode {
-  type: '2d' | '3d' | 'split'
+  type: '3d'
   zoom: number
   panX: number
   panY: number

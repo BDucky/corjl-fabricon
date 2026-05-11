@@ -34,7 +34,15 @@ amplify/backend/amplify-meta.json
 amplify/.config
 
 # Capacitor
-ios
+# Commit ios/ project source; ignore generated/build artifacts.
+ios/App/App/public/
+ios/App/Pods/
+ios/App/Podfile.lock
+ios/App/build/
+ios/DerivedData/
+ios/.gradle/
+ios/capacitor-cordova-ios-plugins/
+# Android scaffold not generated yet — keep blanket-ignored until needed.
 android
 
 # Build output

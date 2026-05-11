@@ -11,8 +11,8 @@ const pinia = createPinia()
 app.use(pinia)
 app.use(router)
 
-// Initialize auth on app load
+// Initialize auth BEFORE mounting — prevents flash of login page on reload
 const authStore = useAuthStore(pinia)
-authStore.initializeAuth()
-
-app.mount('#app')
+authStore.initializeAuth().finally(() => {
+  app.mount('#app')
+})

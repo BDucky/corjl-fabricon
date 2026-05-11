@@ -9,7 +9,7 @@
   >
     <!-- Left: Logo -->
     <div class="flex items-center gap-3">
-      <RouterLink to="/projects" class="flex items-center gap-2">
+      <RouterLink to="/designs" class="flex items-center gap-2">
         <CorjlLogo size="sm" />
       </RouterLink>
     </div>
@@ -17,18 +17,11 @@
     <!-- Center: Nav links (desktop) -->
     <nav class="hidden md:flex items-center gap-1">
       <RouterLink
-        to="/projects"
+        to="/designs"
         class="px-3 py-1.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors duration-fast"
         active-class="!text-white bg-white/15"
       >
-        Projects
-      </RouterLink>
-      <RouterLink
-        to="/templates"
-        class="px-3 py-1.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors duration-fast"
-        active-class="!text-white bg-white/15"
-      >
-        Templates
+        My Designs
       </RouterLink>
     </nav>
 
@@ -64,18 +57,11 @@
       >
         <nav class="flex flex-col p-3 gap-1">
           <RouterLink
-            to="/projects"
+            to="/designs"
             class="px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
             @click="mobileMenuOpen = false"
           >
-            Projects
-          </RouterLink>
-          <RouterLink
-            to="/templates"
-            class="px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-            @click="mobileMenuOpen = false"
-          >
-            Templates
+            My Designs
           </RouterLink>
         </nav>
       </div>

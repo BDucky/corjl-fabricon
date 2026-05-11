@@ -4,45 +4,20 @@
     <div class="flex items-center justify-between px-4 py-2.5 bg-primary border-b border-primary-dark">
       <div class="flex items-center gap-4">
         <RouterLink
-          to="/projects"
+          to="/designs"
           class="text-white/70 hover:text-white transition-colors text-sm flex items-center gap-1"
         >
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-          Projects
+          My Designs
         </RouterLink>
         <h1 class="text-base font-semibold text-white font-rubik">
-          Project Editor
+          Fabricon 3D Preview
         </h1>
       </div>
       <div class="flex items-center gap-2">
-        <!-- 2D/3D toggle -->
-        <div class="flex bg-primary-dark rounded-full p-0.5">
-          <button
-            :class="[
-              'px-3 py-1 text-xs font-medium rounded-full transition-all duration-normal',
-              viewMode === '2d' ? 'bg-white text-primary-dark' : 'text-white/60 hover:text-white',
-            ]"
-            @click="viewMode = '2d'"
-          >
-            2D
-          </button>
-          <button
-            :class="[
-              'px-3 py-1 text-xs font-medium rounded-full transition-all duration-normal',
-              viewMode === '3d' ? 'bg-white text-primary-dark' : 'text-white/60 hover:text-white',
-            ]"
-            @click="viewMode = '3d'"
-          >
-            3D
-          </button>
-        </div>
-
-        <BaseButton size="sm" variant="accent" @click="saveProject">
-          Save
-        </BaseButton>
-        <BaseButton size="sm" variant="ghost" @click="exportProject">
+        <BaseButton size="sm" variant="ghost" @click="showExportDialog = true">
           Export
         </BaseButton>
       </div>
@@ -50,143 +25,116 @@
 
     <!-- Editor content -->
     <div class="flex-1 flex overflow-hidden">
-      <!-- Layers sidebar (glass) -->
+      <!-- Left sidebar: Design Input -->
       <Transition name="panel-slide-left">
         <div
-          v-if="showLayers"
-          class="w-56 bg-surface-1/95 backdrop-blur-sm border-r border-[var(--border-subtle)] overflow-y-auto"
+          v-if="showLeftPanel"
+          class="w-60 bg-surface-1/95 backdrop-blur-sm border-r border-[var(--border-subtle)] overflow-y-auto"
         >
-          <div class="p-4">
-            <h2 class="text-xs font-semibold text-[var(--text-muted)] mb-3 uppercase tracking-wider">
-              Layers
-            </h2>
-            <div class="space-y-1">
-              <div
-                v-for="(layer, i) in layers"
-                :key="i"
-                :class="[
-                  'px-3 py-2 rounded-lg text-sm cursor-pointer transition-colors duration-fast',
-                  activeLayer === i
-                    ? 'bg-primary/20 text-primary-light border border-primary/30'
-                    : 'text-[var(--text-secondary)] hover:bg-surface-2',
-                ]"
-                @click="activeLayer = i"
-              >
-                {{ layer }}
-              </div>
-            </div>
-          </div>
+          <DesignInputPanel />
         </div>
       </Transition>
 
       <!-- Main canvas area -->
       <div class="flex-1 flex flex-col bg-surface-ground">
         <!-- Canvas toolbar -->
-        <div class="flex items-center gap-1 px-3 py-1.5 bg-surface-0 border-b border-[var(--border-subtle)]">
-          <button
-            class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-1 transition-colors"
-            title="Toggle Layers (L)"
-            @click="showLayers = !showLayers"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-          </button>
-          <button
-            class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-1 transition-colors"
-            title="Toggle Properties (P)"
-            @click="showProperties = !showProperties"
-          >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-            </svg>
-          </button>
+        <div class="flex items-center justify-between px-3 py-1.5 bg-surface-0 border-b border-[var(--border-subtle)]">
+          <div class="flex items-center gap-1">
+            <button
+              class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-1 transition-colors"
+              title="Toggle Design Panel (L)"
+              @click="showLeftPanel = !showLeftPanel"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </button>
+            <button
+              class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-1 transition-colors"
+              title="Toggle Properties (P)"
+              @click="showRightPanel = !showRightPanel"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- 3D toolbar controls -->
+          <ViewerToolbar
+            @export="showExportDialog = true"
+            @batch-preview="showBatchPreview = true"
+          />
         </div>
 
-        <!-- Canvas -->
-        <Transition :name="viewMode === '3d' ? 'viewport-transition' : 'viewport-transition'" mode="out-in">
-          <div
-            v-if="viewMode === '2d'"
-            key="2d"
-            class="flex-1 flex items-center justify-center p-4"
-          >
-            <div class="bg-white rounded-lg shadow-depth-lg w-full max-w-2xl aspect-[4/3] flex items-center justify-center">
-              <p class="text-gray-400 text-sm">2D Canvas (Phase 2)</p>
-            </div>
-          </div>
-          <div
-            v-else
-            key="3d"
-            class="flex-1 flex items-center justify-center p-4"
-          >
-            <div class="bg-surface-1 rounded-lg shadow-depth-lg w-full max-w-2xl aspect-[4/3] flex items-center justify-center border border-[var(--border-subtle)]">
-              <p class="text-[var(--text-muted)] text-sm">3D Preview (Phase 3)</p>
-            </div>
-          </div>
-        </Transition>
+        <!-- 3D Canvas -->
+        <div class="flex-1 p-2">
+          <ThreeViewer ref="threeViewerRef" />
+        </div>
       </div>
 
-      <!-- Properties panel (glass) -->
+      <!-- Right panel: Properties -->
       <Transition name="panel-slide-right">
         <div
-          v-if="showProperties"
+          v-if="showRightPanel"
           class="w-60 bg-surface-1/95 backdrop-blur-sm border-l border-[var(--border-subtle)] overflow-y-auto"
         >
-          <div class="p-4">
-            <h2 class="text-xs font-semibold text-[var(--text-muted)] mb-3 uppercase tracking-wider">
-              Properties
-            </h2>
-            <div class="space-y-4">
-              <div>
-                <label class="text-xs text-[var(--text-muted)] uppercase tracking-wide block mb-1.5">
-                  Opacity
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  class="w-full accent-primary"
-                />
-              </div>
-              <div>
-                <label class="text-xs text-[var(--text-muted)] uppercase tracking-wide block mb-1.5">
-                  Rotation
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  class="w-full accent-primary"
-                />
-              </div>
-            </div>
-          </div>
+          <ViewerPropertiesPanel />
         </div>
       </Transition>
     </div>
+
+    <!-- Export dialog -->
+    <ExportDialog
+      :is-open="showExportDialog"
+      @close="showExportDialog = false"
+      @confirm="doExport"
+      @export-all-angles="doExportAllAngles"
+      @export-turntable-gif="doExportTurntableGif"
+    />
+
+    <!-- Batch preview modal -->
+    <BatchPreviewModal
+      :is-open="showBatchPreview"
+      @close="showBatchPreview = false"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute } from 'vue-router'
 import BaseButton from '@components/ui/BaseButton.vue'
+import {
+  ThreeViewer,
+  DesignInputPanel,
+  ViewerPropertiesPanel,
+  ViewerToolbar,
+  ExportDialog,
+  BatchPreviewModal,
+} from '@modules/viewer3d'
+import { useURLParams } from '@modules/viewer3d/composables/useURLParams'
 
-const route = useRoute()
-const projectId = route.params.projectId as string
+const showLeftPanel = ref(true)
+const showRightPanel = ref(true)
+const showExportDialog = ref(false)
+const showBatchPreview = ref(false)
+const threeViewerRef = ref<InstanceType<typeof ThreeViewer> | null>(null)
 
-const viewMode = ref<'2d' | '3d'>('2d')
-const showLayers = ref(true)
-const showProperties = ref(true)
-const activeLayer = ref(0)
+// Initialize URL params integration
+useURLParams()
 
-const layers = ['Background', 'Text Layer', 'Image Layer']
-
-const saveProject = () => {
-  console.log('Saving project:', projectId)
+const doExport = () => {
+  showExportDialog.value = false
+  threeViewerRef.value?.exportImage()
 }
 
-const exportProject = () => {
-  console.log('Exporting project:', projectId)
+const doExportAllAngles = () => {
+  showExportDialog.value = false
+  threeViewerRef.value?.exportAllAngles()
+}
+
+const doExportTurntableGif = () => {
+  showExportDialog.value = false
+  threeViewerRef.value?.exportTurntableGif()
 }
 </script>

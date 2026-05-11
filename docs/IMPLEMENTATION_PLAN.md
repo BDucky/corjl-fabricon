@@ -7,11 +7,10 @@
 
 ## Project Vision
 
-Building a **cross-platform design editor** (similar to Corjl) with:
+Building a **cross-platform 3D product mockup platform** (similar to Corjl) with:
 - Single codebase for Web & Mobile (iOS/Android)
-- High-performance 2D canvas editing (Fabric.js)
-- 3D mockup previews (Three.js)
-- Real-time state synchronization between 2D and 3D
+- 3D product mockup previews (Three.js)
+- Design upload and placement on 3D models
 - AWS serverless backend (Amplify, AppSync, DynamoDB, S3)
 - Mobile-native features via Capacitor (Camera, future AR)
 
@@ -22,14 +21,12 @@ Building a **cross-platform design editor** (similar to Corjl) with:
 ### Component Data Flow
 
 ```
-User Input → EditorCanvas.vue (Orchestrator)
+User Input → EditorView.vue (Orchestrator)
                     ↓
     ┌───────────────┼───────────────┐
     ↓               ↓               ↓
-FabricCanvas  ObjectManager   ThreeViewer
-  (2D Edit) ←→  Store (Pinia) ←→ (3D Preview)
-    ↓               ↓               ↓
-Fabric.js      HistoryStore      Three.js
+DesignInput   Viewer3D Store   ThreeViewer
+  (Upload)  ←→  (Pinia)  ←→  (3D Preview)
                     ↓
               AWS AppSync (GraphQL)
                     ↓
@@ -40,7 +37,7 @@ Fabric.js      HistoryStore      Three.js
 
 - **Frontend**: Vue 3, TypeScript, Tailwind CSS, Pinia
 - **Build**: Vite
-- **Canvas/3D**: Fabric.js (2D), Three.js (3D)
+- **3D**: Three.js
 - **Backend**: AWS Amplify, AppSync, DynamoDB, S3
 - **Mobile**: Capacitor, Camera, Filesystem
 - **Testing**: Vitest, Playwright
@@ -178,48 +175,25 @@ corjl-storage-{env}/
 
 ---
 
-### Phase 2: 2D Editor Core 🚀 IN PROGRESS
-**Duration**: Week 3-4 | **Status**: Starting
+### Phase 2: 3D Mockup Studio ✅ COMPLETE
+**Duration**: Week 3-5 | **Status**: Complete
 
-**Requirements:**
-- Fabric.js integration with proper canvas initialization
-- Object creation: text, shapes, images
-- Object manipulation: move, resize, rotate
-- Layer management and selection
-- Undo/redo history (debounced)
-- Export: PNG, PDF, SVG
-- Auto-save (2s debounce) + explicit save (Ctrl+S)
-- Properties panel for object editing
-- Toolbar with all tools
-- Performance: 60fps canvas rendering
-
-**Planned Components:**
-- `FabricCanvas.vue` - 2D canvas wrapper
-- `EditorToolbar.vue` - Tool selection
-- `LayerPanel.vue` - Layer management
-- `PropertiesPanel.vue` - Object properties
-- `useFabricCanvas.ts` - Composable for Fabric lifecycle
-
-**Planned Stores:**
-- `objectManagerStore` - Canvas objects state
-- `canvasHistoryStore` - Undo/redo
-- `editorStore` - View state (zoom, pan)
-
-**Output:**
-- Fully functional 2D editor
-- All object types working
-- History working
-- Export functionality
-
-**Verification:**
-- Unit tests for stores and components
-- E2E tests for editor workflows
-- Performance benchmarks (60fps)
+**Deliverables:**
+- [x] Three.js scene setup (camera, lighting, renderer)
+- [x] GLB/GLTF model loader with 9 bundled product models
+- [x] OrbitControls camera with presets
+- [x] Design image upload and texture mapping to 3D models
+- [x] Per-model auto-fit with UV-aware texture placement
+- [x] Drag-to-reposition design on 3D model surface
+- [x] Lighting presets (Studio, Daylight, Dramatic, Flat)
+- [x] Product color customization
+- [x] Multi-angle export
+- [x] Ground shadow and auto-rotate
 
 ---
 
 ### Phase 3: Template System
-**Duration**: Week 5
+**Duration**: Week 6
 
 **Requirements:**
 - Implement GraphQL queries for templates
@@ -235,40 +209,7 @@ corjl-storage-{env}/
 
 ---
 
-### Phase 4: 3D Viewer
-**Duration**: Week 6-7
-
-**Requirements:**
-- Three.js scene setup (camera, lighting, renderer)
-- GLB/GLTF model loader
-- OrbitControls camera
-- 2D canvas texture mapping to 3D model
-- 3D export functionality
-
-**Output:**
-- 3D viewer functional
-- 2D designs applied to 3D models
-- Camera controls working
-
----
-
-### Phase 5: View Synchronization
-**Duration**: Week 8
-
-**Requirements:**
-- Toggle between 2D/3D views
-- Split-view mode (side-by-side)
-- Camera sync between 2D zoom and 3D distance
-- Pan sync between views
-
-**Output:**
-- Smooth transitions between views
-- Split view working
-- Synchronized state
-
----
-
-### Phase 6: Mobile Optimization
+### Phase 4: Mobile Optimization
 **Duration**: Week 9
 
 **Requirements:**
@@ -289,15 +230,14 @@ corjl-storage-{env}/
 
 ---
 
-### Phase 7: Camera Integration
-**Duration**: Week 10
+### Phase 5: Camera Integration
+**Duration**: Week 8
 
 **Requirements:**
 - Capacitor Camera plugin integration
 - Photo capture from device
 - Gallery import
 - Image upload to S3
-- Image cropping/editing
 
 **Output:**
 - Camera capture working
@@ -305,8 +245,8 @@ corjl-storage-{env}/
 
 ---
 
-### Phase 8: Polish & Production
-**Duration**: Week 11-12
+### Phase 6: Polish & Production
+**Duration**: Week 9-10
 
 **Requirements:**
 - Error handling and error boundaries
@@ -324,8 +264,8 @@ corjl-storage-{env}/
 
 ---
 
-### Phase 9: AR Preparation
-**Duration**: Week 13
+### Phase 7: AR Preparation
+**Duration**: Week 11
 
 **Requirements:**
 - ARKit/ARCore research
@@ -353,28 +293,13 @@ corjl-storage-{env}/
 - Actions: signup, signin, logout, confirmSignup, resetPassword
 ```
 
-**editorStore** (Phase 2)
+**viewer3dStore** (Phase 2 ✓)
 ```typescript
-- viewMode: '2d' | '3d' | 'split'
-- zoom: number
-- panX: number
-- panY: number
-- selectedObjectId: string | null
-```
-
-**objectManagerStore** (Phase 2)
-```typescript
-- objects: EditorObject[]
-- selectedObjects: EditorObject[]
-- canvasData: fabric.Canvas JSON
-- Actions: addObject, updateObject, deleteObject, serialize
-```
-
-**canvasHistoryStore** (Phase 2)
-```typescript
-- history: CanvasState[]
-- currentIndex: number
-- Actions: undo, redo, addState
+- activeModelId, designImageUrl, textureMappingConfig
+- lightingPresetId, cameraPresetId, backgroundColor
+- productColor, autoRotate, showGroundShadow
+- exportSettings, isExporting
+- Actions: selectModel, autoFitDesign, setDesignFromFile/Url, export
 ```
 
 **projectStore** (Phase 3)
@@ -395,35 +320,7 @@ corjl-storage-{env}/
 
 ---
 
-## Key Integration Points
-
-### 2D → 3D Synchronization (Phase 5)
-**coordinateConverter.ts**
-- `canvas2DToUV()` - Maps Fabric.js (x,y) to Three.js UV (u,v)
-- `applyCanvasTexture()` - Applies 2D canvas as Three.js texture
-
-**useViewportSync.ts**
-- `syncZoomTo3D()` - Convert 2D zoom to 3D camera distance
-- `syncPanTo3D()` - Convert 2D pan to 3D camera position
-
-### State Synchronization Flow
-1. Fabric.js fires `object:modified` event
-2. `useFabricCanvas` captures change
-3. Updates `objectManagerStore`
-4. Store emits change event
-5. `ThreeViewer` watches store, updates texture
-6. Debounced save to AWS (2 seconds)
-
----
-
 ## Performance Targets
-
-### Canvas (Fabric.js)
-- 60fps rendering
-- Object caching for static objects
-- Viewport culling
-- Debounced auto-save (2s)
-- Manual render control
 
 ### 3D (Three.js)
 - 60fps rendering

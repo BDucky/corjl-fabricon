@@ -5,13 +5,12 @@ import { useAuthStore } from '@stores/auth'
 const LoginView = () => import('@/views/LoginView.vue')
 const SignupView = () => import('@/views/SignupView.vue')
 const EditorView = () => import('@/views/EditorView.vue')
-const ProjectsView = () => import('@/views/ProjectsView.vue')
-const TemplatesView = () => import('@/views/TemplatesView.vue')
+const MyDesignsView = () => import('@/views/MyDesignsView.vue')
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    redirect: '/projects',
+    redirect: '/designs',
   },
   {
     path: '/login',
@@ -26,26 +25,20 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false, transition: 'page-fade' },
   },
   {
-    path: '/projects',
-    name: 'Projects',
-    component: ProjectsView,
+    path: '/designs',
+    name: 'MyDesigns',
+    component: MyDesignsView,
     meta: { requiresAuth: true, transition: 'page-fade' },
   },
   {
-    path: '/templates',
-    name: 'Templates',
-    component: TemplatesView,
-    meta: { requiresAuth: true, transition: 'page-fade' },
-  },
-  {
-    path: '/editor/:projectId',
+    path: '/editor/:designId',
     name: 'Editor',
     component: EditorView,
     meta: { requiresAuth: true, transition: 'zoom-fade' },
   },
   {
     path: '/:pathMatch(.*)*',
-    redirect: '/projects',
+    redirect: '/designs',
   },
 ]
 
@@ -55,14 +48,23 @@ const router = createRouter({
 })
 
 // Navigation guard for authentication
-router.beforeEach((to, _from, next) => {
+// Note: initializeAuth() is awaited in main.ts before the app mounts,
+// so isInitialized is always true when guards run. The check below
+// is a safety net for edge cases (e.g., lazy-loaded route navigations).
+router.beforeEach(async (to, _from, next) => {
   const authStore = useAuthStore()
+
+  // Wait for auth initialization if it hasn't completed yet
+  if (!authStore.isInitialized) {
+    await authStore.initializeAuth()
+  }
+
   const requiresAuth = to.meta.requiresAuth !== false
 
   if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
   } else if (!requiresAuth && authStore.isAuthenticated && (to.path === '/login' || to.path === '/signup')) {
-    next('/projects')
+    next('/designs')
   } else {
     next()
   }

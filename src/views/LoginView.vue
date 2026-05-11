@@ -111,7 +111,7 @@ const handleLogin = async () => {
   const result = await authStore.signin(form.email, form.password)
 
   if (result.success) {
-    router.push('/projects')
+    router.push('/designs')
   } else {
     error.value = result.error || 'Login failed'
   }

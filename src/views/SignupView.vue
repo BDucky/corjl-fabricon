@@ -245,7 +245,7 @@ const handleVerify = async () => {
   if (result.success) {
     const loginResult = await authStore.signin(form.email, form.password)
     if (loginResult.success) {
-      router.push('/projects')
+      router.push('/designs')
     } else {
       error.value = loginResult.error || 'Failed to sign in'
     }

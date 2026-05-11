@@ -171,6 +171,22 @@ export const useAuthStore = defineStore('auth', () => {
     return newUser
   }
 
+  // --- User persistence ---
+  const saveUser = (u: User) => {
+    user.value = u
+    localStorage.setItem('user', JSON.stringify(u))
+  }
+
+  const loadUser = (): User | null => {
+    try {
+      const stored = localStorage.getItem('user')
+      if (!stored) return null
+      return JSON.parse(stored) as User
+    } catch {
+      return null
+    }
+  }
+
   // Helper: Clear auth state
   const clearAuth = () => {
     user.value = null
@@ -253,6 +269,8 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Initialize auth from stored session
+  // Phase 1 (sync): restore tokens + user from localStorage → instant isAuthenticated
+  // Phase 2 (async): validate/refresh token, fetch fresh user profile in background
   const initializeAuth = async () => {
     if (isInitialized.value) return
 
@@ -262,35 +280,54 @@ export const useAuthStore = defineStore('auth', () => {
 
       loadTokens()
 
-      if (token.value) {
-        // Check if token needs refresh first
-        if (isTokenExpiringSoon() && refreshToken.value) {
-          const refreshed = await refreshSession()
-          if (!refreshed) {
-            clearAuth()
-            return
-          }
-        }
+      if (!token.value) {
+        clearAuth()
+        return
+      }
 
-        // Fetch user profile
+      // Phase 1: Instant restore from localStorage (no network)
+      const cachedUser = loadUser()
+      if (cachedUser) {
+        user.value = cachedUser
+        isAuthenticated.value = true
+      }
+
+      // Phase 2: Validate/refresh token
+      if (isTokenExpiringSoon() && refreshToken.value) {
+        const refreshed = await refreshSession()
+        if (!refreshed) {
+          clearAuth()
+          return
+        }
+      }
+
+      // Phase 3: Fetch fresh user profile (updates cached data)
+      try {
         const command = new GetUserCommand({
-          AccessToken: token.value,
+          AccessToken: token.value!,
         })
         const response = await cognitoClient.send(command)
         const userData = extractUserFromAttributes(response.UserAttributes)
 
-        user.value = {
-          id: userData.id || '',
-          email: userData.email || '',
-          displayName: userData.displayName || '',
-          subscriptionTier: 'FREE',
-          createdAt: new Date().toISOString(),
+        saveUser({
+          id: userData.id || cachedUser?.id || '',
+          email: userData.email || cachedUser?.email || '',
+          displayName: userData.displayName || cachedUser?.displayName || '',
+          subscriptionTier: cachedUser?.subscriptionTier || 'FREE',
+          createdAt: cachedUser?.createdAt || new Date().toISOString(),
+        })
+      } catch (fetchErr) {
+        // If GetUser fails but we have cached data + valid token, stay authenticated
+        // This handles temporary network issues gracefully
+        if (!cachedUser) {
+          clearAuth()
+          return
         }
-        isAuthenticated.value = true
-        startSessionMonitor()
-      } else {
-        clearAuth()
+        console.warn('Failed to fetch fresh user profile, using cached data:', fetchErr)
       }
+
+      isAuthenticated.value = true
+      startSessionMonitor()
     } catch (err) {
       console.error('Failed to initialize auth:', err)
       clearAuth()
@@ -423,7 +460,7 @@ export const useAuthStore = defineStore('auth', () => {
           createdAt: new Date().toISOString(),
         }
 
-        user.value = authUser
+        saveUser(authUser)
         isAuthenticated.value = true
         startSessionMonitor()
 

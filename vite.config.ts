@@ -27,7 +27,6 @@ export default defineConfig({
       output: {
         manualChunks: {
           'vendor-vue': ['vue', 'vue-router', 'pinia'],
-          'vendor-fabric': ['fabric'],
           'vendor-three': ['three'],
           'vendor-aws': ['aws-amplify', '@aws-amplify/auth', '@aws-amplify/ui-vue'],
         },
