@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-        <string>Fabricon</string>
+	<string>Fabricon</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -22,6 +22,12 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Fabricon needs access to your camera so you can take a photo to use as your 3D design.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Fabricon may save photos you capture to your photo library.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Fabricon needs access to your photo library so you can choose an image to use as your 3D design.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -45,11 +51,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
-	<key>NSCameraUsageDescription</key>
-	<string>Fabricon needs access to your camera so you can take a photo to use as your 3D design.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Fabricon needs access to your photo library so you can choose an image to use as your 3D design.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Fabricon may save photos you capture to your photo library.</string>
 </dict>
 </plist>
