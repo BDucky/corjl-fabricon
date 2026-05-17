@@ -7,6 +7,14 @@ import {
 } from '@aparajita/capacitor-biometric-auth'
 import { SecureStorage } from '@aparajita/capacitor-secure-storage'
 
+/**
+ * Feature flag for biometric sign-in UI. The plumbing (this service, the auth
+ * store methods, the iOS plugin, NSFaceIDUsageDescription) is all in place;
+ * flip this to `true` to expose the LoginView "Sign in with Face ID" button
+ * and the Settings page toggle once the flow is ready for users.
+ */
+export const BIOMETRIC_FEATURE_ENABLED = false
+
 const REFRESH_TOKEN_KEY = 'fabricon.refreshToken'
 const EMAIL_KEY = 'fabricon.email'
 

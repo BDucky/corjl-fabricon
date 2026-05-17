@@ -6,8 +6,8 @@
         <p class="text-sm text-[var(--text-muted)] mt-1">Signed in as {{ authStore.userEmail || '—' }}</p>
       </header>
 
-      <!-- Sign-in section -->
-      <section class="space-y-3">
+      <!-- Sign-in section (biometric — deferred to a future phase) -->
+      <section v-if="biometricFeatureEnabled" class="space-y-3">
         <h2 class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
           Sign in
         </h2>
@@ -50,7 +50,7 @@
       </section>
 
       <!-- Account section -->
-      <section class="mt-8 space-y-3">
+      <section :class="biometricFeatureEnabled ? 'mt-8 space-y-3' : 'space-y-3'">
         <h2 class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">
           Account
         </h2>
@@ -74,9 +74,11 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@components/layout/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
+import { BIOMETRIC_FEATURE_ENABLED } from '@/services/biometric'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const biometricFeatureEnabled = BIOMETRIC_FEATURE_ENABLED
 
 const isBusy = ref(false)
 const message = ref<string | null>(null)

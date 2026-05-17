@@ -89,6 +89,7 @@
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
+import { BIOMETRIC_FEATURE_ENABLED } from '@/services/biometric'
 import BaseInput from '@components/ui/BaseInput.vue'
 import BaseButton from '@components/ui/BaseButton.vue'
 import CorjlLogo from '@components/ui/CorjlLogo.vue'
@@ -112,7 +113,10 @@ const error = ref('')
 
 const biometricLabel = computed(() => authStore.biometricAvailability.label ?? 'biometrics')
 const showBiometric = computed(
-  () => authStore.isBiometricEnabled && authStore.biometricAvailability.isAvailable,
+  () =>
+    BIOMETRIC_FEATURE_ENABLED &&
+    authStore.isBiometricEnabled &&
+    authStore.biometricAvailability.isAvailable,
 )
 
 const handleBiometricLogin = async () => {

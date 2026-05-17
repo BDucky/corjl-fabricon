@@ -210,6 +210,12 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // Helper: Clear auth state
+  // NOTE: biometric state (Keychain refresh token + isBiometricEnabled flag) is
+  // intentionally preserved across sign-out. Face ID itself gates the Keychain
+  // entry, so leaving it in place is what lets the user sign back in with
+  // Face ID next time. The "different user signs in" risk is handled in
+  // signin() — we clear biometric state there if the new account's email
+  // doesn't match the stored biometric email.
   const clearAuth = () => {
     user.value = null
     token.value = null
@@ -225,13 +231,6 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('tokenExpiresAt')
     localStorage.removeItem('orgId')
     localStorage.removeItem('user')
-    // Drop biometric enrollment too — the cached refresh token belongs to the
-    // signed-out user. Future sign-ins must opt in again, which is also a safer
-    // default if multiple people share the device.
-    isBiometricEnabled.value = false
-    localStorage.removeItem(BIOMETRIC_ENABLED_KEY)
-    // Fire-and-forget; Keychain deletion is best-effort.
-    void clearRefreshCredentials()
     stopSessionMonitor()
   }
 
@@ -492,6 +491,16 @@ export const useAuthStore = defineStore('auth', () => {
         saveUser(authUser)
         isAuthenticated.value = true
         startSessionMonitor()
+
+        // If biometric was previously enrolled for a different account on this
+        // device, clear it so the previous user's Face ID can't unlock this
+        // session. The new user must opt in fresh in Settings.
+        if (isBiometricEnabled.value) {
+          const stored = await loadRefreshCredentials().catch(() => null)
+          if (stored && stored.email && stored.email.toLowerCase() !== email.toLowerCase()) {
+            await disableBiometric()
+          }
+        }
 
         return { success: true, user: authUser }
       }
