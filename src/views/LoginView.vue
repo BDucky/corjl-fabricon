@@ -15,6 +15,24 @@
           Sign in to your account
         </h2>
 
+        <!-- Biometric quick-sign-in (only when enabled + available) -->
+        <div v-if="showBiometric" class="mb-5 space-y-3">
+          <BaseButton
+            type="button"
+            variant="secondary"
+            full-width
+            :is-loading="isBiometricLoading"
+            @click="handleBiometricLogin"
+          >
+            Sign in with {{ biometricLabel }}
+          </BaseButton>
+          <div class="flex items-center gap-3 text-xs text-[var(--text-muted)]">
+            <span class="flex-1 h-px bg-[var(--border-subtle)]" />
+            <span>or use your password</span>
+            <span class="flex-1 h-px bg-[var(--border-subtle)]" />
+          </div>
+        </div>
+
         <form class="space-y-5" @submit.prevent="handleLogin">
           <BaseInput
             v-model="form.email"
@@ -68,7 +86,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
 import BaseInput from '@components/ui/BaseInput.vue'
@@ -89,7 +107,25 @@ const errors = reactive({
 })
 
 const isLoading = ref(false)
+const isBiometricLoading = ref(false)
 const error = ref('')
+
+const biometricLabel = computed(() => authStore.biometricAvailability.label ?? 'biometrics')
+const showBiometric = computed(
+  () => authStore.isBiometricEnabled && authStore.biometricAvailability.isAvailable,
+)
+
+const handleBiometricLogin = async () => {
+  isBiometricLoading.value = true
+  error.value = ''
+  const result = await authStore.signinWithBiometric()
+  if (result.success) {
+    router.push('/designs')
+  } else {
+    error.value = result.error || 'Biometric sign-in failed'
+  }
+  isBiometricLoading.value = false
+}
 
 const validateField = (field: keyof typeof form) => {
   if (field === 'email') {

@@ -13,6 +13,6 @@ app.use(router)
 
 // Initialize auth BEFORE mounting — prevents flash of login page on reload
 const authStore = useAuthStore(pinia)
-authStore.initializeAuth().finally(() => {
+Promise.all([authStore.initializeAuth(), authStore.initBiometric()]).finally(() => {
   app.mount('#app')
 })

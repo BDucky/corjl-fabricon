@@ -24,6 +24,8 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>Fabricon needs access to your camera so you can take a photo to use as your 3D design.</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Fabricon uses Face ID to sign you back in without entering your password.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Fabricon may save photos you capture to your photo library.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

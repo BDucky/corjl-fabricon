@@ -23,6 +23,13 @@
       >
         My Designs
       </RouterLink>
+      <RouterLink
+        to="/settings"
+        class="px-3 py-1.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-full transition-colors duration-fast"
+        active-class="!text-white bg-white/15"
+      >
+        Settings
+      </RouterLink>
     </nav>
 
     <!-- Right: User menu -->
@@ -62,6 +69,13 @@
             @click="mobileMenuOpen = false"
           >
             My Designs
+          </RouterLink>
+          <RouterLink
+            to="/settings"
+            class="px-4 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+            @click="mobileMenuOpen = false"
+          >
+            Settings
           </RouterLink>
         </nav>
       </div>

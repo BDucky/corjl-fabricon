@@ -17,6 +17,18 @@ import type {
   InitiateAuthCommandInput,
 } from '@aws-sdk/client-cognito-identity-provider'
 import type { User } from '@/types'
+import {
+  authenticateBiometric,
+  biometricErrorMessage,
+  checkBiometricAvailability,
+  clearRefreshCredentials,
+  isBiometricSupportedPlatform,
+  loadRefreshCredentials,
+  storeRefreshCredentials,
+  type BiometricAvailability,
+} from '@/services/biometric'
+
+const BIOMETRIC_ENABLED_KEY = 'biometricEnabled'
 
 // Auth error types matching native mobile app pattern
 type AuthErrorType =
@@ -60,6 +72,16 @@ export const useAuthStore = defineStore('auth', () => {
   const isLoading = ref(false)
   const error = ref<string | null>(null)
   const isInitialized = ref(false)
+
+  // Biometric state — populated by initBiometric() and updated by enable/disable.
+  const biometricAvailability = ref<BiometricAvailability>({
+    isAvailable: false,
+    kind: 'none',
+    label: null,
+  })
+  const isBiometricEnabled = ref(
+    typeof localStorage !== 'undefined' && localStorage.getItem(BIOMETRIC_ENABLED_KEY) === '1',
+  )
 
   let backgroundCheckInterval: ReturnType<typeof setInterval> | null = null
 
@@ -203,6 +225,13 @@ export const useAuthStore = defineStore('auth', () => {
     localStorage.removeItem('tokenExpiresAt')
     localStorage.removeItem('orgId')
     localStorage.removeItem('user')
+    // Drop biometric enrollment too — the cached refresh token belongs to the
+    // signed-out user. Future sign-ins must opt in again, which is also a safer
+    // default if multiple people share the device.
+    isBiometricEnabled.value = false
+    localStorage.removeItem(BIOMETRIC_ENABLED_KEY)
+    // Fire-and-forget; Keychain deletion is best-effort.
+    void clearRefreshCredentials()
     stopSessionMonitor()
   }
 
@@ -526,6 +555,98 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  // --- Biometric sign-in ---
+  const initBiometric = async () => {
+    if (!isBiometricSupportedPlatform()) return
+    biometricAvailability.value = await checkBiometricAvailability()
+    // If the user disabled biometrics from another device or the OS revoked them,
+    // make sure we don't lie about being enabled.
+    if (!biometricAvailability.value.isAvailable && isBiometricEnabled.value) {
+      isBiometricEnabled.value = false
+      localStorage.removeItem(BIOMETRIC_ENABLED_KEY)
+      await clearRefreshCredentials()
+    }
+  }
+
+  const enableBiometric = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!isBiometricSupportedPlatform()) {
+      return { success: false, error: 'Not available on this device' }
+    }
+    if (!refreshToken.value) {
+      return { success: false, error: 'Sign in with your password first' }
+    }
+    if (!biometricAvailability.value.isAvailable) {
+      return { success: false, error: biometricAvailability.value.reason || 'Biometrics unavailable' }
+    }
+    try {
+      const label = biometricAvailability.value.label ?? 'biometrics'
+      await authenticateBiometric(`Enable sign-in with ${label}`)
+      await storeRefreshCredentials(user.value?.email ?? '', refreshToken.value)
+      isBiometricEnabled.value = true
+      localStorage.setItem(BIOMETRIC_ENABLED_KEY, '1')
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: biometricErrorMessage(err) }
+    }
+  }
+
+  const disableBiometric = async (): Promise<{ success: boolean }> => {
+    isBiometricEnabled.value = false
+    localStorage.removeItem(BIOMETRIC_ENABLED_KEY)
+    await clearRefreshCredentials()
+    return { success: true }
+  }
+
+  const signinWithBiometric = async (): Promise<{ success: boolean; error?: string }> => {
+    if (!isBiometricSupportedPlatform()) {
+      return { success: false, error: 'Not available on this device' }
+    }
+    if (!isBiometricEnabled.value) {
+      return { success: false, error: 'Biometric sign-in is not enabled' }
+    }
+    try {
+      isLoading.value = true
+      error.value = null
+
+      const label = biometricAvailability.value.label ?? 'biometrics'
+      await authenticateBiometric(`Sign in with ${label}`)
+
+      const creds = await loadRefreshCredentials()
+      if (!creds) {
+        // Keychain wiped (device reset, app reinstall) — fall back to password.
+        await disableBiometric()
+        return { success: false, error: 'Saved sign-in expired — please sign in with your password' }
+      }
+
+      // Seed the store with the stored refresh token and ask Cognito for fresh tokens.
+      refreshToken.value = creds.refreshToken
+      const refreshed = await refreshSession()
+      if (!refreshed) {
+        await disableBiometric()
+        return { success: false, error: 'Saved sign-in is no longer valid — please sign in with your password' }
+      }
+
+      // Pull the user profile so the rest of the app behaves like a normal sign-in.
+      const getUserCommand = new GetUserCommand({ AccessToken: token.value! })
+      const userResponse = await cognitoClient.send(getUserCommand)
+      const userData = extractUserFromAttributes(userResponse.UserAttributes)
+      saveUser({
+        id: userData.id || '',
+        email: userData.email || creds.email,
+        displayName: userData.displayName || creds.email.split('@')[0],
+        subscriptionTier: loadUser()?.subscriptionTier || 'FREE',
+        createdAt: loadUser()?.createdAt || new Date().toISOString(),
+      })
+      isAuthenticated.value = true
+      startSessionMonitor()
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: biometricErrorMessage(err) }
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   // Confirm password reset
   const confirmPasswordReset = async (email: string, code: string, newPassword: string) => {
     try {
@@ -561,6 +682,8 @@ export const useAuthStore = defineStore('auth', () => {
     isLoading,
     error,
     isInitialized,
+    biometricAvailability,
+    isBiometricEnabled,
 
     // Computed
     userEmail,
@@ -577,5 +700,9 @@ export const useAuthStore = defineStore('auth', () => {
     startPasswordReset,
     confirmPasswordReset,
     refreshSession,
+    initBiometric,
+    enableBiometric,
+    disableBiometric,
+    signinWithBiometric,
   }
 })
