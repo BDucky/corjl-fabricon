@@ -120,7 +120,8 @@ Replace the client-side Replicate call with an Amplify Function. The token never
 | Step | Status | Commit |
 |---|---|---|
 | 1 — Tab shell | Committed + visually verified on iPhone | `d14db71` |
-| 2 — New Imagine flow | Implemented; type-check + lint clean; awaiting visual verification | _uncommitted_ |
+| 2 — New Imagine flow (desktop layout) | Committed; type-check + lint + build clean | `bf562ee` |
+| 2.5 — Mobile polish of the modal | Committed (sticky CTAs, safe area, 2-col grid, ≥44px touch targets); **not yet visually verified on iPhone** | _see session log 2026-05-17_ |
 | 3 — Replicate generation | Not started | — |
 | 4 — Persistence | Not started | — |
 | 5 — Lambda | Not started | — |
@@ -182,3 +183,36 @@ These are intentionally **left uncommitted** — `git status` tomorrow will show
 - Visually verify the 4-step flow on the dev server. Watch for: thumbnail-CORS issues when calling `setDesignFromUrl` (texture mapper does its own CORS load); auto-selected model fits the chosen design's aspect ratio; capture button gates on `!isModelLoading && !isDesignLoading`.
 - Commit Step 2: `feat(imagine): add 4-step Create Imagine flow`.
 - Begin Step 3 (Replicate generation) — see "Step 3" section above.
+
+### 2026-05-17 — End-of-day handoff (long session, many tangents)
+
+**What got committed (in order):**
+
+| Commit | Scope |
+|---|---|
+| `bf562ee` | `feat(imagine): add 4-step Create Imagine flow` — Step 2 of this plan |
+| `669d8ac` | `feat(editor): phone-first layout with bottom sheets` — EditorView rebuilt for mobile (canvas fills viewport; Design / Properties / Tools open as `MobileBottomSheet`s) |
+| `9f999d5` | `fix(ios): make capacitor.config.ts transpile cleanly to CJS` — unblocked `npx cap sync ios` on Node 22+ (was throwing "exports is not defined" because `import.meta.url` forced ESM) |
+| `35534b7` | `fix(editor): hide hidden models in batch preview, auto-close sheet on model switch` |
+| `02586ad` | `chore(editor): trim Tools sheet to Auto-rotate + Batch preview` |
+| `c299412` | `fix(modal): stop ExportDialog from overflowing horizontally on phone` — also hardened BaseModal (`overflow-x-hidden`, `flex-wrap` footer, smaller padding on phone) |
+| `c47d17e` | `feat(auth): Face ID / Touch ID sign-in with Settings toggle` — plumbing all in, capacitor-biometric-auth + secure-storage installed, NSFaceIDUsageDescription added to Info.plist, new `/settings` route, `src/services/biometric.ts`, auth store extended |
+| `1c63052` | `chore(auth): defer Face ID sign-in UI behind a feature flag` — `BIOMETRIC_FEATURE_ENABLED = false` in `services/biometric.ts` hides the LoginView button + Settings biometric section. Underlying plumbing remains for revival. |
+| _this commit_ | `chore(imagine): mobile-polish the Create Imagine modal` — sticky footer CTAs with `pb-safe-b`, `pt-safe-t` header, `overflow-x-hidden` body, 2-col grid on phone, ≥44px touch targets, ≥48px primary CTAs, back button reserves layout space on Step 1 |
+
+**State of Imagine specifically:**
+- Step 1 (tab shell): shipped, verified.
+- Step 2 (modal flow): shipped, mobile-polished. **Not yet device-verified after the mobile polish** — first iPhone test should cover the 7-step checklist in the chat log under "Verify on iPhone after ⌘R". Watch the Step 4 prompt textarea + iOS keyboard interaction in particular.
+- Step 3 (Replicate generation): not started. Next major feature.
+
+**Open follow-ups (not started):**
+- **Face ID refresh-token flow bug.** Enabling biometric and then tapping "Sign in with Face ID" returned "Saved sign-in is no longer valid". Likely the Cognito REFRESH_TOKEN_AUTH call in `signinWithBiometric` fails because the cached refresh token was minted *before* `clearAuth` ran (early version of the feature wiped the token on sign-out). The wipe was later removed (still removed) and a "different user signs in" safety net was added. Re-verify the full flow before flipping `BIOMETRIC_FEATURE_ENABLED` back to true.
+- **`ImagineCreateModal` Step 2 ThreeViewer in modal.** Embeds the singleton viewer3d store — if the user later navigates to `/editor/:id`, `viewerStore.reset()` should keep the state clean, but worth a smoke test.
+- **BatchPreview on phone.** Still uses `BaseModal` (centered card, max-w-md). The export-modal fixes apply automatically (it shares BaseModal), but it has not been device-verified.
+- **Imagine modal CORS.** `setDesignFromUrl` reads only natural dimensions (no CORS), but the texture mapper does its own CORS-enabled image load on the CDN thumbnail. If you see a `tainted canvas` SecurityError on `captureBlob`, the CDN is missing `Access-Control-Allow-Origin`.
+
+**Process notes for next session (in addition to memory):**
+- The user does **not** want auto-commit during iteration — verify on device first, commit only when they say so. See `feedback_no_commit_until_verified.md` in memory.
+- **Mobile UX is the primary quality bar.** See `feedback_mobile_first_quality_bar.md`.
+- iOS deploy loop: `pnpm build && npx cap sync ios && ⌘R` in Xcode. The phone won't pick up new code from `pnpm build` alone.
+- `capacitor.config.ts` is fragile on Node 22 + `"type": "module"` — keep using `process.cwd()` instead of `import.meta.url` if you edit it.
