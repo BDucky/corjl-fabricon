@@ -248,19 +248,6 @@ const RotateIcon = () =>
       d: 'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
     }),
   ])
-const ShadowIcon = () =>
-  h('svg', { class: 'w-5 h-5', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
-    h('path', {
-      'stroke-linecap': 'round',
-      'stroke-linejoin': 'round',
-      'stroke-width': '2',
-      d: 'M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2',
-    }),
-  ])
-const PrintAreaIcon = () =>
-  h('svg', { class: 'w-5 h-5', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24', 'stroke-dasharray': '3 2' }, [
-    h('rect', { x: 3, y: 3, width: 18, height: 18, rx: 1, 'stroke-width': 2 }),
-  ])
 const BatchIcon = () =>
   h('svg', { class: 'w-5 h-5', fill: 'none', stroke: 'currentColor', viewBox: '0 0 24 24' }, [
     h('path', {
@@ -278,20 +265,6 @@ const toolButtons = computed(() => [
     icon: RotateIcon,
     active: viewerStore.autoRotate,
     onClick: () => viewerStore.toggleAutoRotate(),
-  },
-  {
-    id: 'shadow',
-    label: 'Ground shadow',
-    icon: ShadowIcon,
-    active: viewerStore.showGroundShadow,
-    onClick: () => viewerStore.toggleGroundShadow(),
-  },
-  {
-    id: 'printArea',
-    label: 'Print area',
-    icon: PrintAreaIcon,
-    active: viewerStore.showPrintArea,
-    onClick: () => viewerStore.togglePrintArea(),
   },
   {
     id: 'batchPreview',
