@@ -8,48 +8,46 @@ export function useExporter(
 ) {
   const store = useViewer3dStore()
 
-  async function exportImage(): Promise<void> {
+  async function captureBlob(opts?: { width?: number; height?: number; transparent?: boolean }): Promise<Blob | null> {
     const r = renderer()
     const s = scene()
     const cam = camera()
-    if (!r || !s || !cam) return
+    if (!r || !s || !cam) return null
 
-    const { width, height, transparentBackground } = store.exportSettings
+    const width = opts?.width ?? store.exportSettings.width
+    const height = opts?.height ?? store.exportSettings.height
+    const transparent = opts?.transparent ?? store.exportSettings.transparentBackground
 
-    // Save current state
     const prevSize = new THREE.Vector2()
     r.getSize(prevSize)
     const prevClearAlpha = r.getClearAlpha()
     const prevClearColor = new THREE.Color()
     r.getClearColor(prevClearColor)
 
-    // Resize for export
     r.setSize(width, height)
     cam.aspect = width / height
     cam.updateProjectionMatrix()
-
-    if (transparentBackground) {
-      r.setClearAlpha(0)
-    }
+    if (transparent) r.setClearAlpha(0)
 
     r.render(s, cam)
 
-    // Export
-    const canvas = r.domElement
     const blob = await new Promise<Blob | null>((resolve) =>
-      canvas.toBlob(resolve, 'image/png'),
+      r.domElement.toBlob(resolve, 'image/png'),
     )
 
-    // Restore
     r.setSize(prevSize.x, prevSize.y)
     cam.aspect = prevSize.x / prevSize.y
     cam.updateProjectionMatrix()
     r.setClearColor(prevClearColor, prevClearAlpha)
     r.render(s, cam)
 
+    return blob
+  }
+
+  async function exportImage(): Promise<void> {
+    const blob = await captureBlob()
     if (!blob) return
 
-    // Download
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -58,5 +56,5 @@ export function useExporter(
     URL.revokeObjectURL(url)
   }
 
-  return { exportImage }
+  return { exportImage, captureBlob }
 }

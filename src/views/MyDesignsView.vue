@@ -56,9 +56,8 @@
         </p>
         <button
           type="button"
-          class="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
-          disabled
-          title="Coming in the next step"
+          class="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
+          @click="showImagineModal = true"
         >
           Create new
         </button>
@@ -154,18 +153,26 @@
         </div>
       </template>
       </template>
+
+      <ImagineCreateModal
+        :is-open="showImagineModal"
+        @close="showImagineModal = false"
+      />
     </div>
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppLayout from '@components/layout/AppLayout.vue'
 import SkeletonCard from '@components/ui/SkeletonCard.vue'
 import DesignCard from '@components/designs/DesignCard.vue'
 import DesignFilters from '@components/designs/DesignFilters.vue'
+import ImagineCreateModal from '@/components/imagine/ImagineCreateModal.vue'
 import { useDesignsStore } from '@stores/designs'
+
+const showImagineModal = ref(false)
 
 type TabId = 'designs' | 'imagine'
 

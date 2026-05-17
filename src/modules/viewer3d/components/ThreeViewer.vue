@@ -64,7 +64,7 @@ useTextureMapper(() => currentModel.value)
 const cameraPresets = useCameraPresets(() => camera.value, () => controls.value)
 const groundShadow = useGroundShadow(() => scene.value)
 const autoRotateComposable = useAutoRotate(() => controls.value)
-const { exportImage } = useExporter(
+const { exportImage, captureBlob } = useExporter(
   () => renderer.value,
   () => scene.value,
   () => camera.value,
@@ -167,6 +167,7 @@ defineExpose({
   exportImage,
   exportAllAngles,
   exportTurntableGif,
+  captureBlob,
   getCanvas,
   cameraPresets,
 })

@@ -54,11 +54,14 @@ A modal (or sub-route) with four stacked sub-steps. Submit `console.log`s the pa
 4. Prompt textarea + Generate button
 
 **Done when:**
-- [ ] "Create new" on the Imagine tab opens the flow
-- [ ] Each of the 4 sub-steps works and shows valid output
-- [ ] Submit logs `{ designId, mockupImageBlob, faceImageBlob, prompt }`
-- [ ] Cancel/close works at every sub-step
-- [ ] No regression on Step 1's tab behavior
+- [x] "Create new" on the Imagine tab opens the flow
+- [x] Each of the 4 sub-steps works and shows valid output
+- [x] Submit logs `{ designId, mockupImageBlob, faceImageBlob, prompt }`
+- [x] Cancel/close works at every sub-step
+- [x] No regression on Step 1's tab behavior
+- [x] `pnpm type-check` is clean
+- [x] `pnpm lint` is clean
+- [ ] Verified visually in the dev server *(your turn — run `pnpm dev`)*
 
 ### Step 3 — Replicate (PuLID-Flux) generation
 
@@ -116,8 +119,8 @@ Replace the client-side Replicate call with an Amplify Function. The token never
 
 | Step | Status | Commit |
 |---|---|---|
-| 1 — Tab shell | Implemented + visually verified on iPhone (2026-05-13). Not yet committed. | _uncommitted_ |
-| 2 — New Imagine flow | Not started | — |
+| 1 — Tab shell | Committed + visually verified on iPhone | `d14db71` |
+| 2 — New Imagine flow | Implemented; type-check + lint clean; awaiting visual verification | _uncommitted_ |
 | 3 — Replicate generation | Not started | — |
 | 4 — Persistence | Not started | — |
 | 5 — Lambda | Not started | — |
@@ -157,8 +160,25 @@ These are intentionally **left uncommitted** — `git status` tomorrow will show
 
 ### Tomorrow's pickup checklist
 
-- [ ] Paste the real `VITE_GRAPHQL_ENDPOINT` into `/Users/binhle/Documents/GitHub/corjl-fabricon/.env`
-- [ ] `pnpm dev` and confirm Designs list loads
-- [ ] Review `git diff` for the two uncommitted files
-- [ ] Commit Step 1: `feat(imagine): add tab shell to MyDesignsView`
-- [ ] Begin Step 2 — see "Step 2" section above
+- [x] Paste the real `VITE_GRAPHQL_ENDPOINT` into `/Users/binhle/Documents/GitHub/corjl-fabricon/.env`
+- [x] `pnpm dev` and confirm Designs list loads
+- [x] Review `git diff` for the two uncommitted files
+- [x] Commit Step 1: `feat(imagine): add tab shell to MyDesignsView`
+- [x] Begin Step 2 — see "Step 2" section above
+
+### 2026-05-17 — Step 2 implementation
+
+**What got done (uncommitted):**
+- New `ImagineCreateModal.vue` (4 stacked sub-steps: design picker → 3D snapshot → face photo → prompt + submit). Submit currently `console.log`s `{ designId, mockupImageBlob, faceImageBlob, prompt }`.
+- New `services/imagine/captureFace.ts` — clean variant of `loadFromCamera` that returns `{ file, previewUrl }` without mutating the viewer3d store.
+- `useExporter` extended with `captureBlob({ width, height, transparent })` so a snapshot can be captured without triggering the download. `exportImage` was refactored to use it (behaviour unchanged).
+- `ThreeViewer` exposes `captureBlob` alongside the existing export methods.
+- `MyDesignsView` "Create new" button now opens the modal.
+- `pnpm type-check` and `pnpm lint` both clean.
+
+**Implementation note:** the modal embeds the singleton `ThreeViewer` and drives it through `useViewer3dStore`. On open/close/back, `viewerStore.reset()` is called to keep state from leaking back into `/editor/:id` if the user navigates there afterwards.
+
+**Next pickup:**
+- Visually verify the 4-step flow on the dev server. Watch for: thumbnail-CORS issues when calling `setDesignFromUrl` (texture mapper does its own CORS load); auto-selected model fits the chosen design's aspect ratio; capture button gates on `!isModelLoading && !isDesignLoading`.
+- Commit Step 2: `feat(imagine): add 4-step Create Imagine flow`.
+- Begin Step 3 (Replicate generation) — see "Step 3" section above.
