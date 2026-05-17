@@ -184,7 +184,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, h, watch } from 'vue'
 import BaseButton from '@components/ui/BaseButton.vue'
 import MobileBottomSheet from '@components/ui/MobileBottomSheet.vue'
 import {
@@ -211,6 +211,17 @@ useURLParams()
 function openSheet(id: 'design' | 'properties' | 'tools') {
   mobileSheet.value = mobileSheet.value === id ? null : id
 }
+
+// When the user switches products from inside a sheet, close the sheet so
+// the new model is immediately visible on the canvas.
+watch(
+  () => viewerStore.activeModelId,
+  (next, prev) => {
+    if (next && next !== prev && mobileSheet.value) {
+      mobileSheet.value = null
+    }
+  },
+)
 
 const doExport = () => {
   showExportDialog.value = false
