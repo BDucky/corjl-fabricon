@@ -7,32 +7,32 @@
         role="dialog"
         aria-modal="true"
       >
-        <!-- Header -->
-        <header class="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)] bg-surface-1">
-          <div class="flex items-center gap-3">
-            <button
-              v-if="step > 1"
-              type="button"
-              class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-2 transition-colors"
-              aria-label="Back"
-              @click="goBack"
-            >
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <div>
-              <h2 class="text-base font-semibold text-[var(--text-primary)]">
-                Create Imagine
-              </h2>
-              <p class="text-xs text-[var(--text-muted)]">
-                Step {{ step }} of 4 · {{ stepLabels[step - 1] }}
-              </p>
-            </div>
+        <!-- Header (safe-area aware) -->
+        <header
+          class="flex items-center justify-between gap-2 px-3 sm:px-4 py-2.5 border-b border-[var(--border-subtle)] bg-surface-1 pt-safe-t"
+        >
+          <button
+            type="button"
+            class="p-2 -m-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-2 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
+            :class="{ 'opacity-0 pointer-events-none': step === 1 }"
+            aria-label="Back"
+            @click="goBack"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div class="flex-1 min-w-0 text-center">
+            <h2 class="text-sm sm:text-base font-semibold text-[var(--text-primary)] truncate">
+              Create Imagine
+            </h2>
+            <p class="text-[11px] sm:text-xs text-[var(--text-muted)] truncate">
+              Step {{ step }} of 4 · {{ stepLabels[step - 1] }}
+            </p>
           </div>
           <button
             type="button"
-            class="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-2 transition-colors"
+            class="p-2 -m-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-surface-2 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center"
             aria-label="Close"
             @click="close"
           >
@@ -43,7 +43,7 @@
         </header>
 
         <!-- Stepper -->
-        <div class="flex items-center gap-1 px-4 py-2 border-b border-[var(--border-subtle)] bg-surface-1">
+        <div class="flex items-center gap-1 px-3 sm:px-4 py-2 border-b border-[var(--border-subtle)] bg-surface-1">
           <template v-for="(label, i) in stepLabels" :key="label">
             <div
               class="flex-1 h-1 rounded-full transition-colors"
@@ -52,17 +52,17 @@
           </template>
         </div>
 
-        <!-- Body (scrollable) -->
-        <div class="flex-1 overflow-y-auto">
+        <!-- Body (scrollable, x-overflow guarded) -->
+        <main class="flex-1 overflow-y-auto overflow-x-hidden">
           <!-- Step 1: Pick a design -->
-          <section v-if="step === 1" class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-            <h3 class="text-sm font-semibold text-[var(--text-primary)] mb-4">
+          <section v-if="step === 1" class="max-w-7xl mx-auto py-4 sm:py-6 px-3 sm:px-6">
+            <h3 class="text-sm font-semibold text-[var(--text-primary)] mb-3 sm:mb-4">
               Pick a design
             </h3>
 
             <div
               v-if="designsStore.isLoading && designsStore.designs.length === 0"
-              class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
             >
               <SkeletonCard v-for="i in 8" :key="i" />
             </div>
@@ -76,7 +76,7 @@
 
             <div
               v-else
-              class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+              class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4"
             >
               <DesignCard
                 v-for="design in designsStore.designs"
@@ -89,23 +89,13 @@
 
           <!-- Step 2: Snapshot the 3D mockup -->
           <section v-else-if="step === 2" class="h-full flex flex-col">
-            <div class="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center justify-between">
-              <div>
-                <h3 class="text-sm font-semibold text-[var(--text-primary)]">
-                  Pose the 3D mockup
-                </h3>
-                <p class="text-xs text-[var(--text-muted)]">
-                  Rotate / zoom to frame it, then capture.
-                </p>
-              </div>
-              <button
-                type="button"
-                class="px-3 py-1.5 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
-                :disabled="!canCapture || isCapturing"
-                @click="captureMockup"
-              >
-                {{ isCapturing ? 'Capturing…' : 'Capture & continue' }}
-              </button>
+            <div class="px-4 py-3 border-b border-[var(--border-subtle)]">
+              <h3 class="text-sm font-semibold text-[var(--text-primary)]">
+                Pose the 3D mockup
+              </h3>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">
+                Rotate / zoom to frame it, then capture.
+              </p>
             </div>
             <div class="flex-1 min-h-0 p-2">
               <ThreeViewer ref="viewerRef" />
@@ -113,37 +103,24 @@
           </section>
 
           <!-- Step 3: Face photo -->
-          <section v-else-if="step === 3" class="max-w-2xl mx-auto py-8 px-4">
-            <h3 class="text-sm font-semibold text-[var(--text-primary)] mb-4">
+          <section v-else-if="step === 3" class="max-w-2xl mx-auto py-4 sm:py-8 px-4">
+            <h3 class="text-sm font-semibold text-[var(--text-primary)] mb-3 sm:mb-4">
               Add a face photo
             </h3>
 
-            <div v-if="facePreviewUrl" class="space-y-4">
+            <div v-if="facePreviewUrl" class="space-y-3">
               <img
                 :src="facePreviewUrl"
                 alt="Your photo"
                 class="w-full max-h-[60vh] object-contain rounded-lg bg-surface-1"
               />
-              <div class="flex gap-3">
-                <button
-                  type="button"
-                  class="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-surface-2 text-[var(--text-secondary)] hover:bg-surface-1 transition-colors"
-                  @click="retakeFace"
-                >
-                  Retake
-                </button>
-                <button
-                  type="button"
-                  class="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors"
-                  @click="step = 4"
-                >
-                  Continue
-                </button>
-              </div>
+              <p class="text-xs text-[var(--text-muted)] text-center">
+                Looks good? Continue, or retake from the bar below.
+              </p>
             </div>
 
             <div v-else class="space-y-4">
-              <div class="rounded-lg border-2 border-dashed border-[var(--border-default)] py-12 px-6 text-center">
+              <div class="rounded-lg border-2 border-dashed border-[var(--border-default)] py-10 sm:py-12 px-6 text-center">
                 <svg class="w-12 h-12 text-[var(--text-muted)] mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -156,7 +133,7 @@
                 </p>
                 <button
                   type="button"
-                  class="px-4 py-2 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
+                  class="px-5 py-2.5 text-sm font-medium rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50 min-h-[44px]"
                   :disabled="isCapturingFace"
                   @click="captureFace"
                 >
@@ -167,13 +144,12 @@
             </div>
           </section>
 
-          <!-- Step 4: Prompt + Generate -->
-          <section v-else-if="step === 4" class="max-w-2xl mx-auto py-8 px-4 space-y-6">
+          <!-- Step 4: Prompt -->
+          <section v-else-if="step === 4" class="max-w-2xl mx-auto py-4 sm:py-8 px-4 space-y-5 sm:space-y-6">
             <h3 class="text-sm font-semibold text-[var(--text-primary)]">
               Describe the scene
             </h3>
 
-            <!-- Preview thumbnails -->
             <div class="grid grid-cols-2 gap-3">
               <div class="space-y-1">
                 <p class="text-[10px] uppercase tracking-wider text-[var(--text-muted)]">Mockup</p>
@@ -210,17 +186,54 @@
                 Tip: keep it short and visual.
               </p>
             </div>
+          </section>
+        </main>
 
+        <!-- Sticky bottom CTA bar (per step). Step 1 has no bar — picking a card advances. -->
+        <footer
+          v-if="step > 1"
+          class="border-t border-[var(--border-subtle)] bg-surface-1 px-3 sm:px-4 py-3 pb-safe-b"
+        >
+          <!-- Step 2: Capture mockup -->
+          <button
+            v-if="step === 2"
+            type="button"
+            class="w-full px-4 py-3 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50 min-h-[48px]"
+            :disabled="!canCapture || isCapturing"
+            @click="captureMockup"
+          >
+            {{ isCapturing ? 'Capturing…' : 'Capture & continue' }}
+          </button>
+
+          <!-- Step 3: Retake + Continue (only when a photo exists) -->
+          <div v-else-if="step === 3 && facePreviewUrl" class="flex gap-2">
             <button
               type="button"
-              class="w-full px-4 py-3 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50"
-              :disabled="!canGenerate"
-              @click="submit"
+              class="flex-1 px-4 py-3 text-sm font-medium rounded-lg bg-surface-2 text-[var(--text-secondary)] hover:bg-surface-3 transition-colors min-h-[48px]"
+              @click="retakeFace"
             >
-              Generate
+              Retake
             </button>
-          </section>
-        </div>
+            <button
+              type="button"
+              class="flex-1 px-4 py-3 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors min-h-[48px]"
+              @click="step = 4"
+            >
+              Continue
+            </button>
+          </div>
+
+          <!-- Step 4: Generate -->
+          <button
+            v-else-if="step === 4"
+            type="button"
+            class="w-full px-4 py-3 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-dark transition-colors disabled:opacity-50 min-h-[48px]"
+            :disabled="!canGenerate"
+            @click="submit"
+          >
+            Generate
+          </button>
+        </footer>
       </div>
     </Transition>
   </Teleport>
@@ -287,7 +300,6 @@ function goBack() {
   if (step.value === 1) return
   step.value = (step.value - 1) as 1 | 2 | 3
   if (step.value === 1) {
-    // Going back to step 1 — drop the loaded viewer state so re-picking a design re-loads cleanly.
     viewerStore.reset()
     selectedDesign.value = null
     mockupBlob.value = null
@@ -302,7 +314,6 @@ async function onPickDesign(designId: string) {
   selectedDesign.value = design
   step.value = 2
 
-  // Wait for the viewer to mount before loading the design into the store.
   await nextTick()
   const thumbnailUrl = designsStore.getThumbnailUrl(design.thumbnailFilePath)
   if (!thumbnailUrl) return
@@ -310,7 +321,7 @@ async function onPickDesign(designId: string) {
   try {
     await viewerStore.setDesignFromUrl(thumbnailUrl)
   } catch {
-    // Texture mapper still handles its own load; the viewer will render the model regardless.
+    // Texture mapper still handles its own load; the viewer will render regardless.
   }
 }
 
@@ -364,7 +375,6 @@ function submit() {
   close()
 }
 
-// Reset when the modal opens fresh.
 watch(
   () => props.isOpen,
   (open) => {
