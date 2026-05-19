@@ -84,7 +84,7 @@ One codebase. Web, iOS, Android.
 
 A live, interactive product preview powered by Three.js.
 
-- **9 bundled product models**: t-shirt, hoodie, polo, tank top, tote bag, coffee mug, phone case, cardboard box, standee
+- **9 bundled product models** (7 visible by default — tank top and cardboard box are flagged `hidden: true` in `BUNDLED_MODELS` until their UV layouts are polished): t-shirt, hoodie, polo, tote bag, coffee mug, phone case, standee (visible); tank top, cardboard box (hidden)
 - **Auto-fit UV mapping** — drop a design in, it lands correctly on the printable surface
 - **Drag-to-reposition** on the model
 - **Lighting presets** — Studio, Daylight, Dramatic, Flat
@@ -106,46 +106,151 @@ The phone's camera becomes a creative input, not just a viewer.
 
 ## Core Feature 3 — "Imagine" AI Virtual Try-On
 
-> **Visual:** schematic pipeline diagram. Three input nodes on the left (mockup PNG, face PNG, prompt text) feeding into a central "PuLID-Flux" labeled box with circuit-board traces; output on the right is a framed result image. All in teal `#086674` strokes with gold `#F5B461` accent on the PuLID-Flux box. Tiny ASCII-style ports/labels.
+> **Visual:** schematic pipeline diagram. Two input nodes on the left (mockup PNG, face PNG) feed into a central router block labeled "IDM-VTON / PuLID-Flux" that branches by product type; output on the right is a framed result image. All in teal `#086674` strokes with gold `#F5B461` accent on the router block. Tiny ASCII-style ports/labels.
 
-The signature feature. Four steps, one result.
+The signature feature. Four steps, one personalized image — **no prompt to type**.
 
-1. **Pick a design** from the user's gallery
-2. **Snapshot the 3D mockup** — captures the model with the design applied
-3. **Capture a face photo** via camera
-4. **Write a prompt** — "wearing this hoodie on a Tokyo street at night"
+1. **Pick a design** from the user's gallery (filtered to designs that actually have artwork)
+2. **Pick a product + pose the 3D mockup** — the viewer is embedded in the modal; a chip strip lets the user switch between **T-Shirt / Polo / Hoodie**; capture button triggers a headless render
+3. **Capture a face photo** via the phone camera — with an on-screen silhouette guide and an amber "is your chest visible?" warning
+4. **Review & Generate** — two-thumbnail review, one-tap **Generate**, ~20–60s wait, result appears inline
 
-→ Sent to **Replicate (PuLID-Flux)** which preserves facial identity while compositing the mockup into the scene. Result is saved back to the user's "Imagine" gallery tab.
+→ Routed to **Replicate**. The product determines which model handles it (next slide). Prompts are **auto-generated per-product** from `src/services/imagine/promptBuilder.ts` so the user never has to write one. Result is shown inline; **persistence (S3 + ImagineJob row) is Step 4 of the plan, not yet shipped**.
 
 ---
 
 ## The Imagine Workflow
 
-> **Visual:** full-width data-flow schematic, dark surface. Three input ports stacked vertically on the left, connected via teal bus lines to a labeled `PuLID-Flux` processor block in the center; output goes through `S3 / AppSync` storage block to a phone-shaped gallery on the right. Use blueprint-style line weights, monospace labels, faint dotted grid background. Highlight the PuLID-Flux node in gold `#F5B461`.
+> **Visual:** full-width data-flow schematic, dark surface. Two input ports stacked vertically on the left feed a central "router" diamond labeled by product kind; the diamond branches into two parallel processor blocks (IDM-VTON for garments / PuLID-Flux for face-only), both routing into a single result block; result is shown inline on a phone outline. The IDM-VTON block is highlighted gold `#F5B461`. Dotted grid background, blueprint line weights, monospace labels.
 
 ```
-┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│  3D Mockup PNG  │   │  Face Photo     │   │  Text Prompt    │
-│  ▔▔▔▔▔▔▔▔▔▔▔▔▔  │   │  ▔▔▔▔▔▔▔▔▔▔▔▔▔  │   │  ▔▔▔▔▔▔▔▔▔▔▔▔▔  │
-└────────┬────────┘   └────────┬────────┘   └────────┬────────┘
-         │                     │                     │
-         └─────────┬───────────┴───────────┬─────────┘
-                   ▼                       ▼
-              ╔═══════════════════════════════╗
-              ║   Replicate · PuLID-Flux      ║   ← gold accent
-              ║   (face-identity diffusion)   ║
-              ╚═══════════════╤═══════════════╝
-                              ▼
-                  ┌───────────────────────┐
-                  │  S3 · ImagineJob row  │
-                  │  (status: SUCCEEDED)  │
-                  └───────────┬───────────┘
-                              ▼
-                    ╭───────────────────╮
-                    │  Imagine Gallery  │  ← phone outline
-                    │  (Corjl try-it-on)│
-                    ╰───────────────────╯
+┌─────────────────┐   ┌─────────────────┐
+│  3D Mockup PNG  │   │   Face Photo    │     auto-prompt built
+│  (cleanBg +     │   │  (Capacitor     │     per-product from
+│   auto-frame)   │   │   Camera)       │     promptBuilder.ts
+└────────┬────────┘   └────────┬────────┘
+         │                     │
+         └──────────┬──────────┘
+                    ▼
+            ╔═══════════════════╗
+            ║   modelKind(id)   ║
+            ╚═════════╤═════════╝
+              garment │ face
+       ┌──────────────┴───────────────┐
+       ▼                              ▼
+┌──────────────────┐         ┌──────────────────┐
+│  IDM-VTON        │ ← gold  │  PuLID-Flux      │
+│  (cuuupid/       │         │  (bytedance/     │
+│   idm-vton)      │         │   flux-pulid)    │
+│  garm_img +      │         │  face image +    │
+│  human_img +     │         │  per-product     │
+│  garment_des     │         │  prompt          │
+└────────┬─────────┘         └────────┬─────────┘
+         └──────────┬─────────────────┘
+                    ▼
+        ┌───────────────────────────┐
+        │  poll /v1/predictions/:id │   2s · 5min timeout
+        │  via CapacitorHttp        │
+        └─────────────┬─────────────┘
+                      ▼
+            ╭───────────────────╮
+            │  Inline preview   │   ← phone outline
+            │  (Imagine modal)  │
+            ╰───────────────────╯
+
+      [Step 4 not shipped — no S3 upload, no ImagineJob row yet]
 ```
+
+---
+
+## Imagine — Today's Scope (Garment-First)
+
+> **Visual:** product-grid mosaic on dark surface. Three teal-bordered tiles (T-Shirt / Polo / Hoodie) light up bright with a glow `rgba(8,102,116,0.30)`. Five tiles behind them (tote / mug / phone case / box / standee) are dimmed and stamped with a gold "later" badge `#F5B461`.
+
+The Imagine picker shows **only garment-route models** today.
+
+- **Visible**: T-Shirt · Polo · Hoodie (tank top is hidden; same route, not yet polished)
+- **Hidden**: Tote · Coffee Mug · Phone Case · Cardboard Box · Standee
+
+**Why scoped down (decision logged 2026-05-19):** Tote bag end-to-end test returned a Replicate **402** from PuLID-Flux ("must be less than or equal to 20" — image-count guard on the object route). Rather than burn iteration cycles tuning a route that doesn't preserve the design pixels anyway, we paused all non-garment products until the object pipeline is rebuilt.
+
+**Code where it lives:** `src/components/imagine/ImagineCreateModal.vue`
+```ts
+const pickerModels = computed(() =>
+  viewerStore.allModels.filter(
+    (m) => m.bundled && !m.hidden && modelKind(m.id) === 'garment',
+  ),
+)
+```
+
+The `face` route in `replicateClient.ts` + the non-garment prompt templates in `promptBuilder.ts` are **kept as dead code** so the object pipeline can be revived without a re-port.
+
+---
+
+## Imagine — The Capture Pipeline (`captureBlob`)
+
+> **Visual:** four-stage horizontal flow diagram, dark surface. Stage 1 = the 3D viewer with grid + ground shadow. Stage 2 = the same viewer with grid hidden, white background swapped in (label "cleanBackground"). Stage 3 = the viewer auto-zoomed onto the chest's print area (label "framePrintArea, ~80% fill"). Stage 4 = a flat 1024×1024 PNG suitable for IDM-VTON. Teal arrows between stages, monospace labels.
+
+The mockup snapshot is **not** the same renderer the user sees — it's a two-step transform inside `src/modules/viewer3d/composables/useExporter.ts`.
+
+**Step A — `cleanBackground: true`** (shipped earlier)
+- Hides `__grid__`, `__scene_staging__`, `__ground_shadow__` helpers
+- Swaps `scene.background` for solid white, `renderer.setClearColor(white, 1)`
+- Result: a product-catalog-style image instead of a dark-themed viewer screenshot
+- Why this matters: IDM-VTON couldn't extract the garment from a dark-background capture — output was a plain skin-tone top
+
+**Step B — `framePrintArea: true`** (shipped 2026-05-19, Step 3.6 #1)
+- New utility `framePrintArea.ts` walks each target mesh's `(uv, position)` attributes
+- For every vertex whose UV lies inside `MODEL_TEXTURE_DEFAULTS[id].printAreaUV`, the world-space position is collected into a `THREE.Box3`
+- Camera repositioned along +Z at the exact distance that fills `fillRatio` (default 0.8) of the frame at the export aspect
+- Restored before the next render so the user's hand-set framing is preserved
+- Why: IDM-VTON re-paints the garment; giving it more pixels of the actual design measurably improves fidelity in the output
+
+Combined, these turn a hand-posed 3D scene into a flat, design-filled, high-pixel-density input that IDM-VTON can actually learn from.
+
+---
+
+## Imagine — The Auto-Prompt (No Free Text)
+
+> **Visual:** before/after split. Left: a sad-looking blank textarea with the placeholder "describe the scene…". Right: a clean checkmark icon over a one-line reassurance string, with a faded list of 9 product templates behind it. Teal/gold callouts: "removed", "shipped".
+
+The original Step 4 had a free-text prompt textarea. **Removed.**
+
+**Why:** Letting customers type a prompt is poor UX — non-technical users either left it blank or wrote contradictory text. Replaced with auto-generated prompts that vary by 3D model.
+
+**How it works (`src/services/imagine/promptBuilder.ts`):**
+
+- **`TEMPLATES`** — one prompt string per product (`tshirt`, `polo`, `hoodie`, `tanktop`, `totebag`, `phonecase`, `coffeemug`, `cardboardbox`, `standee`)
+- Every template emphasizes three things we can actually control:
+  1. **FACE** — `"the exact same face, hair, and expression as the reference photo"`
+  2. **PRODUCT** — the explicit noun, oriented toward the camera
+  3. **"DESIGN EXISTS"** — `"a bold colorful printed graphic design clearly visible facing the camera"` — biases the model toward drawing *something* on the product, not a blank surface
+- **`buildNegativePrompt()`** — discourages the failure modes we hit in early tests: `"blank product, plain unprinted surface, distorted face, multiple people, extra fingers, text watermark, cartoon, blurry"`
+- **`buildGarmentDescription()`** — a short text hint passed to IDM-VTON's `garment_des` input ("A short-sleeve cotton t-shirt with a printed graphic on the front…")
+- **`modelKind(id)`** classifies the active model into `'garment' | 'face'` — the router
+
+**Honest limitation, surfaced in the UI:** the face route can't reproduce the design pixel-for-pixel. The Step 4 reassurance copy says that explicitly for non-garment products.
+
+---
+
+## Imagine — Why Single-Stage IDM-VTON (Not Two-Stage)
+
+> **Visual:** A/B comparison panel on dark surface. Left: a "two-stage" flowchart (PuLID body-synth → IDM-VTON) with a red `#D63E36` strikethrough; small caption "face identity dropped". Right: a "single-stage" flowchart (IDM-VTON with real photo) in solid teal `#086674`; caption "face preserved · chest visibility required". Gold `#F5B461` accent on the single-stage block.
+
+We tried generating a synthetic full-body photo first (PuLID-Flux body-synth) then feeding that to IDM-VTON. Result: the customer's face identity dropped noticeably on each stage's re-paint.
+
+**Decision (2026-05-18):** revert to single-stage IDM-VTON with the user's **real** photo as `human_img`. Trade-off: the model can only draw the design where it can see the torso, so the **user's chest must be in frame**.
+
+**How we mitigate the chest-visibility constraint in the UI:**
+- **Silhouette guide SVG** at Step 3 — shows a head + shoulders + chest outline so the user knows what frame to take
+- **Amber post-capture warning** — "Is your chest visible? The design only appears where the AI can see your torso. If your photo is head-only, the result will have a blank or empty shirt."
+- Step 3 hint text adapts based on `isGarmentRoute`: garment route reads "Step back so your head, shoulders, and chest are all in frame"; non-garment reads "Use the camera or pick a photo from your gallery"
+
+**IDM-VTON params we landed on:**
+- `garm_img: <mockup data URI>` · `human_img: <face data URI>` · `garment_des: <per-product text>`
+- `category: 'upper_body'` · `crop: false` · `seed: random()` · `steps: 30`
+
+Step 3.6 #2 (not done) is the obvious next lever: `steps: 30 → 40`, `force_dc: true`.
 
 ---
 
@@ -241,13 +346,13 @@ One codebase · three surfaces · one serverless backend.
 ## End-to-End User Flow
 
 1. **Sign in** with email (Cognito)
-2. **My Designs** tab — browse / upload designs
+2. **My Designs** tab — browse / upload designs (search + sort; type-filter UI was removed for simplicity)
 3. Open a design → **3D Editor**: pick a product model, place artwork, light it, color it
-4. **Export** a mockup PNG, or…
+4. **Export** a mockup PNG (single / multi-angle / turntable GIF), or…
 5. Switch to **Imagine** tab → "Create new"
-6. Pick the design → snapshot the mockup → take a face photo → write a prompt
-7. AI returns a personalized image → saved to the Imagine gallery
-8. Share, download, iterate.
+6. Pick a design → pick a product (garment chip strip: T-Shirt / Polo / Hoodie) → capture the mockup → take a face photo
+7. Tap **Generate** — auto-prompt fires, Replicate runs the route (~20–60s), result appears inline
+8. **Start over** to iterate, or close (gallery persistence ships in Step 4)
 
 ---
 
@@ -271,7 +376,8 @@ One codebase · three surfaces · one serverless backend.
 
 **Security**
 - Cognito-issued JWTs · field-level GraphQL auth · pre-signed S3 URLs
-- Replicate API key moves to Lambda before mobile ship — never bundled
+- ⚠️ **Today:** `VITE_REPLICATE_API_TOKEN` is bundled into the iOS app — fine for the dev TestFlight build, **not safe for public release**
+- ⏳ **Step 5 (Lambda) before launch:** token lives in the Lambda's env vars; frontend creates an `ImagineJob` row, the Lambda reads it and calls Replicate
 
 ---
 
@@ -286,7 +392,17 @@ One codebase · three surfaces · one serverless backend.
 | 3 — Template & project persistence (AppSync + DynamoDB) | 🟡 In progress |
 | 4 — Mobile optimization (iOS shipped, Android next) | 🟡 In progress |
 | 5 — Camera capture as design input | ✅ Complete |
-| 6 — **Imagine** AI try-on (4-step flow + Replicate + Lambda) | 🟡 In progress |
+| 6 — **Imagine** AI try-on | 🟡 In progress (see below) |
+| &nbsp;&nbsp;6.1 — 4-step modal flow (mobile-polished) | ✅ Shipped |
+| &nbsp;&nbsp;6.2 — Replicate integration (CapacitorHttp + polling) | ✅ Shipped |
+| &nbsp;&nbsp;6.3 — Per-product router (IDM-VTON / PuLID-Flux) | ✅ Shipped |
+| &nbsp;&nbsp;6.4 — Auto-prompt (per-product templates) | ✅ Shipped |
+| &nbsp;&nbsp;6.5 — `cleanBackground` + auto-frame capture (Step 3.6 #1) | ✅ Shipped |
+| &nbsp;&nbsp;6.6 — Garment-only scope (object route paused on Replicate 402) | ✅ Shipped |
+| &nbsp;&nbsp;6.7 — Tune IDM-VTON params (`steps: 40`, `force_dc: true` — Step 3.6 #2) | ⏳ Next |
+| &nbsp;&nbsp;6.8 — S3 persistence + ImagineJob row (Step 4) | ⏳ Planned |
+| &nbsp;&nbsp;6.9 — Lambda proxy for Replicate token (Step 5) | ⏳ Planned |
+| &nbsp;&nbsp;6.10 — Replace IDM-VTON / Flux for commercial license | ⚠️ Blocker before launch |
 | 7 — AR preview (ARKit / ARCore) | ⏳ Researching |
 
 ---
@@ -372,7 +488,7 @@ The killer detail: a user's flat image becomes a correctly-placed texture on a c
 
 Capacitor wraps the same Vue web app into a native iOS/Android shell. Configuration in `capacitor.config.ts`:
 
-- **`appId: com.corjl.tryiton`**, **`appName: Corjl try-it-on`**, **`webDir: dist`**
+- **`appId: com.corjl.fabricon`**, **`appName: Fabricon`**, **`webDir: dist`**
 - **Live reload on device** — if `CAPACITOR_SERVER_URL` is set (read from `.env` without pulling in `dotenv`), the app loads from the Vite dev server over LAN. Unset = bundled `dist/` for TestFlight builds.
 - **Plugins wired:**
   - `@capacitor/camera` — `presentationStyle: 'popover'`, used by both design upload and the Imagine face capture
@@ -443,35 +559,81 @@ Three access tiers in one bucket, enforced by Amplify-generated IAM:
 
 ## Deep Tech — The Imagine Pipeline (in code)
 
-> **Visual:** sequence diagram in the style of a UML/timing chart. Vertical lifelines (left → right): `User`, `ImagineModal`, `ThreeViewer`, `Capacitor.Camera`, `S3`, `Lambda`, `Replicate`. Numbered horizontal arrows between them show the message order. Teal strokes on dark surface, monospace labels, blueprint grid background.
+> **Visual:** sequence diagram in the style of a UML/timing chart. Vertical lifelines (left → right): `User`, `ImagineModal`, `ThreeViewer`, `Capacitor.Camera`, `CapacitorHttp`, `Replicate · /models`, `Replicate · /predictions`. Numbered horizontal arrows show the message order. Teal strokes on dark surface, monospace labels, blueprint grid background.
 
-**File map:**
-- `src/components/imagine/ImagineCreateModal.vue` — 4-step wizard UI (Teleport-mounted full-screen modal, stepper bar, Back/Close header)
-- `src/services/imagine/captureFace.ts` — Capacitor camera → `File` + preview URL
-- `src/modules/viewer3d/composables/useExporter.ts` — new `captureBlob({ width, height, transparent })` headless render
-- `src/modules/viewer3d/components/ThreeViewer.vue` — exposes `captureBlob` to parents via `defineExpose`
+**File map (what's actually shipped on `feat/camera-imagine`):**
 - `src/views/MyDesignsView.vue` — Imagine tab + "Create new" CTA, route-query state (`?tab=imagine`)
+- `src/components/imagine/ImagineCreateModal.vue` — 4-step Teleport-mounted modal (stepper bar, Back/Close, sticky bottom CTAs with `pb-safe-b`)
+- `src/services/imagine/captureFace.ts` — Capacitor Camera → `File` + preview URL, with explicit cancel-detection
+- `src/modules/viewer3d/composables/useExporter.ts` — `captureBlob({ width, height, transparent, cleanBackground, framePrintArea })`
+- `src/modules/viewer3d/utils/framePrintArea.ts` — print-area AABB → camera repositioning
+- `src/services/imagine/replicateClient.ts` — the router + model-resolution + polling
+- `src/services/imagine/promptBuilder.ts` — `MODEL_KIND`, `modelKind()`, per-product `TEMPLATES`, `buildGarmentDescription()`, `buildNegativePrompt()`
 
-**Sequence on submit:**
-1. User picks a design from `designsStore.designs` (reuses `DesignCard` grid)
-2. The embedded `ThreeViewer` loads that design's texture; `captureBlob({ transparent: true })` produces a clean PNG
-3. `captureFacePhoto()` returns the user's face as a `File`
-4. Prompt textarea content + both blobs + `designId` form the payload
-5. **Today:** payload is `console.log`ged (Step 2 complete, Step 3 next)
-6. **Step 3 (next):** `services/imagine/replicateClient.ts` POSTs to Replicate's REST API, polls the prediction until `succeeded` or `failed`, returns a URL
-7. **Step 4 (planned):** mockup + face PNGs are uploaded to S3 *before* the Replicate call; an `ImagineJob` row is created with `status: PENDING`, updated to `SUCCEEDED`/`FAILED`
-8. **Step 5 (planned):** the Replicate call moves into an Amplify Function (Lambda) so the API token never ships to mobile
+**Sequence on Generate (today):**
+1. User picks a design → `viewerStore.setDesignFromUrl(thumbnailUrl)`; the aspect-matcher's pick is overridden to a garment if it landed on a non-garment.
+2. User picks a product via the chip strip → `viewerStore.selectModel(id)`; texture mapper re-binds the design.
+3. User taps **Capture & continue** → `captureBlob({ width: 1024, height: 1024, cleanBackground: true, framePrintArea: isGarmentRoute })` returns a flat, design-filled PNG.
+4. User taps **Take photo** → `captureFacePhoto()` → Capacitor Camera (`source: Prompt`) → `Blob` → `File` + `objectURL` preview.
+5. User taps **Generate** → `generateImage({ modelId, mockupImage, faceImage })`:
+   - Both blobs → `blobToDataUri()` (chunked `arrayBuffer` + `btoa`; avoids `FileReader` for ESLint-allowlist reasons)
+   - `modelKind(modelId) === 'garment'` → `generateGarment()` route (IDM-VTON)
+   - Else → `generateFace()` route (PuLID-Flux) — currently unreachable from the UI; see "Scope" slide
+6. **Model resolution:** `GET /v1/models/{slug}` → cache `latest_version.id` per session. We use `/v1/predictions` (not `/v1/models/{slug}/predictions`) because that endpoint is restricted to Replicate's official models — community models 404.
+7. **Create + poll:** `POST /v1/predictions { version, input }`; then `GET /v1/predictions/{id}` every 2s until `succeeded` / `failed` / `canceled`, with a 5-minute timeout. Returns the first output URL.
+8. UI swaps Step 4 for an inline result view with **Start over** + **Done** CTAs.
+9. **Not yet shipped:** S3 persistence + ImagineJob row (Step 4 of the plan) and Lambda proxy (Step 5).
+
+**Why `CapacitorHttp` instead of `fetch`?** Browser CORS would block the Replicate calls from inside the WebView. `CapacitorHttp` runs the request through native Swift/Kotlin, bypassing the WebView's CORS layer entirely.
 
 ---
 
-## Deep Tech — AI Model Choice
+## Deep Tech — AI Model Choice (Per-Product Router)
 
-**PuLID-Flux on Replicate** (with InstantID as fallback)
-- *Why PuLID-Flux:* preserves facial identity dramatically better than vanilla SDXL or stock IP-Adapter approaches, while still respecting the prompt's scene/style
-- *Why Replicate:* one HTTP POST + polling; no model hosting, no GPU ops, billed per second of inference
-- *Why InstantID as fallback:* slightly cheaper, still face-aware, used when PuLID-Flux fails or queue is slow
-- *Inputs:* mockup image (the rendered 3D product), face image (Capacitor camera), text prompt
-- *Output:* a single image; result key stored on the `ImagineJob` so the gallery can render it
+> **Visual:** decision-tree diagram. Top node = "modelKind(modelId)". Left branch (garment) leads to a teal box "cuuupid/idm-vton" with inputs `garm_img + human_img + garment_des`. Right branch (face) leads to a dimmer box "bytedance/flux-pulid" with `main_face_image + prompt + negative_prompt`. Gold `#F5B461` accent on the garment branch (the route shipped today). Monospace labels.
+
+There's **no single best try-on model** for both clothing and physical objects, so the router in `replicateClient.ts` picks per product.
+
+**Garment route — `cuuupid/idm-vton`** (T-Shirt, Polo, Hoodie, Tank Top)
+- *What it does:* True virtual try-on — takes the garment image and the person image, re-paints the garment onto the person while preserving identity.
+- *Inputs:* `garm_img` (the cleanBg + auto-framed mockup) · `human_img` (the user's real photo) · `garment_des` (per-product text hint) · `category: 'upper_body'` · `crop: false` · `seed: random()` · `steps: 30`
+- *Why this one:* The only Replicate model that takes BOTH a garment image AND a human image and preserves both. PuLID is face-only; SDXL with IP-Adapter doesn't preserve design pixels.
+- *Limitation:* Re-paints the garment — fine details (logos, text) get smudged. Step 3.6 #1 (auto-frame) ships today as the first mitigation.
+- ⚠️ **License: CC BY-NC-SA 4.0.** Must be replaced before commercial launch.
+
+**Face route — `bytedance/flux-pulid`** (everything else — currently unreachable from the UI)
+- *What it does:* Face-identity-preserving diffusion — injects facial identity features into Flux at every denoising step.
+- *Inputs:* `prompt` (per-product template) · `negative_prompt` · `main_face_image` · `id_weight: 1` · `guidance_scale: 6` · `num_steps: 28` · `output_format: 'png'`
+- *Why this one for objects:* Object products (mug, tote, phone case) have no try-on model that preserves their design. PuLID at least preserves the face and frames the product naturally.
+- *Honest limitation:* The design pixels are NOT preserved — the model can't see the mockup. Surfaced in the Step 4 reassurance copy.
+- ⚠️ **License: Flux.1-dev is also non-commercial.** Same blocker as IDM-VTON.
+
+**Why Replicate over self-hosting either model:**
+- Zero GPU ops — no model weights to host, no autoscaler to tune
+- One uniform HTTP API for both models — swap by changing one env var (`VITE_REPLICATE_MODEL_GARMENT` / `VITE_REPLICATE_MODEL_FACE`)
+- Per-second billing fits a per-user feature where load is unpredictable
+- Trade-off: cold-start latency and a license blocker we still need to clear
+
+---
+
+## Deep Tech — The Auto-Frame Algorithm (`framePrintArea`)
+
+> **Visual:** annotated 3D scene diagram. A tshirt mesh on the left in default pose with a small print region highlighted gold. A right-arrow labeled "framePrintArea(0.8)". Right side: the same mesh viewed straight-on from +Z with the chest print region filling ~80% of the frame. Annotation callouts in monospace: `target meshes · UV ∈ printAreaUV · world AABB · +Z distance · controls.update()`.
+
+The Step 3.6 #1 fix that shipped on 2026-05-19. New utility in `src/modules/viewer3d/utils/framePrintArea.ts`.
+
+**The problem it solves.** A hand-posed 3D capture sends IDM-VTON a tiny chest patch inside a full-body mockup. The model has very few pixels of the actual design to learn from, so the design comes out smudged.
+
+**The algorithm:**
+1. Resolve the active model's target meshes via `targetMeshNames` + `targetMaterialNames`.
+2. For each mesh, iterate `(uv, position)` BufferAttributes. For every vertex whose UV lies inside `MODEL_TEXTURE_DEFAULTS[id].printAreaUV`, transform `position` by `mesh.matrixWorld` and `expandByPoint()` a `THREE.Box3`.
+3. Compute the box's `center` + `size`. Using `camera.fov` and the export aspect, calculate the distance along +Z that makes the box fill `fillRatio` (0.8) of the rendered frame in both axes; pick the max of the two (whichever dimension would overflow first) and add `size.z / 2 + 0.1` so the back of the curved chest doesn't clip the near plane.
+4. `camera.position.set(center.x, center.y, center.z + distance)`, `controls.target.copy(center)`, `controls.update()`, `camera.updateProjectionMatrix()`.
+5. Return a `FrameRestoreState` `{ position, target, aspect }`; `captureBlob` restores it after `toBlob()` resolves.
+
+**Returns `null` (caller falls back to user's framing) when:** no target meshes match, the meshes have no UV/position attributes, or no vertices fall inside `printAreaUV`. Defensive against weird user-uploaded models.
+
+**Only fires for garments** (`framePrintArea: isGarmentRoute.value` in the modal). Non-garment captures keep the user's framing — the print-area concept doesn't generalize cleanly to wrap-around products like mugs anyway.
 
 ---
 
@@ -512,11 +674,14 @@ Every step in `docs/IMAGINE_FEATURE_PLAN.md` requires `pnpm type-check` and `pnp
 | Auto-rotate / turntable | `useAutoRotate` / `useTurntableExport` | OrbitControls + `gifenc` | — | — | — |
 | Export single PNG | `useExporter.exportImage` | `toBlob('image/png')` | — | — | — |
 | Multi-angle batch export | `useMultiAngleExport` | loop + `fflate` ZIP | — | — | — |
-| Imagine — pick design | `ImagineCreateModal` step 1 | — | — | designs from AppSync | — |
-| Imagine — mockup snapshot | `ImagineCreateModal` step 2 | `useExporter.captureBlob` | — | — | — |
-| Imagine — face capture | `captureFace.ts` | `URL.createObjectURL` preview | `@capacitor/camera` | — | — |
-| Imagine — generate | `replicateClient.ts` (planned) | — | — | S3 + AppSync (`ImagineJob`) | Replicate / PuLID-Flux |
-| Imagine — gallery | Imagine tab in `MyDesignsView` | — | — | `listImagineJobs` query | — |
+| Imagine — pick design | `ImagineCreateModal` step 1 | — | — | designs from AppSync (filtered to `thumbnailFilePath !== null`) | — |
+| Imagine — pick product + capture | `ImagineCreateModal` step 2 (chip strip, embedded ThreeViewer) | `useExporter.captureBlob({ cleanBackground, framePrintArea })`, `framePrintArea.ts` | — | — | — |
+| Imagine — face capture | `captureFace.ts` (with silhouette guide + chest warning) | `URL.createObjectURL` preview | `@capacitor/camera` (`source: Prompt`) | — | — |
+| Imagine — auto-prompt | `promptBuilder.ts` | — | — | — | per-product `TEMPLATES` + `negative_prompt` + `garment_des` |
+| Imagine — router + generate | `replicateClient.ts` (shipped, client-side) | — | `@capacitor/core` `CapacitorHttp` (bypasses WebView CORS) | — | Replicate · IDM-VTON (garment) / PuLID-Flux (face — UI hidden) |
+| Imagine — result | inline preview in modal (Start over / Done) | — | — | — | — |
+| Imagine — persistence (planned) | — | — | — | S3 + AppSync (`ImagineJob`) | — |
+| Imagine — token security (planned) | — | — | — | Amplify Function (Lambda) | — |
 
 ---
 
@@ -527,7 +692,13 @@ Every step in `docs/IMAGINE_FEATURE_PLAN.md` requires `pnpm type-check` and `pnp
 - **Capacitor over React Native / native rewrite**: literally the same Vue codebase ships to web + iOS + Android. Critical for a small team.
 - **AWS Amplify Gen 2 over Gen 1**: code-first TypeScript (`defineAuth`, `defineData`, `defineStorage`) instead of an interactive CLI; per-environment sandboxes; no `amplify-cli` global drift.
 - **AppSync over a REST API**: typed schema, generated client, field-level `@auth`, real-time subscriptions available for free when we need them.
-- **Replicate over self-hosting PuLID-Flux**: zero GPU ops; switch models with a one-line change; per-second billing fits a per-user feature.
+- **Replicate over self-hosting the AI models**: zero GPU ops; switch models with a one-line env-var change; per-second billing fits a per-user feature with unpredictable load.
+- **Per-product router (IDM-VTON + PuLID) over a single model**: no single model preserves both face identity AND printed design pixels across both garments and physical objects. The router picks the best fit per product; the UI copy is honest about what each route can and cannot preserve.
+- **Single-stage IDM-VTON over a two-stage PuLID→IDM-VTON pipeline**: two-stage drops face identity on each re-paint. Single-stage with the user's real photo preserves the face exactly; the chest-visibility constraint is mitigated with a silhouette guide and an amber warning in the UI.
+- **Auto-prompt over a free-text prompt input**: non-technical users either leave the prompt blank or write contradictory text. Auto-generated per-product templates (`promptBuilder.ts`) emphasize the three things the model can actually control (face / product / "design exists") and stay consistent across runs.
+- **`CapacitorHttp` over `fetch` for Replicate**: the WebView's CORS layer blocks Replicate's API; CapacitorHttp routes through native code and bypasses it.
+- **`/v1/predictions` + resolved version SHA over `/v1/models/{slug}/predictions`**: the slug endpoint is restricted to Replicate's official models — community models 404. We `GET /v1/models/{slug}` once per session, cache `latest_version.id`, then POST with `{ version, input }`.
+- **`cleanBackground` + `framePrintArea` capture mode** (not the existing renderer): IDM-VTON couldn't extract the garment from a dark-themed viewer capture (output was a plain skin-tone top). Hiding helpers, swapping in white, and auto-zooming to the print area turns the same scene into a flat product-catalog-style image with high pixel density on the design.
 - **Pinia store reset pattern in Imagine**: the modal embeds the singleton `ThreeViewer` and calls `viewerStore.reset()` on open/close/back so state never leaks back into `/editor/:id` if the user navigates there afterwards.
 
 ---
