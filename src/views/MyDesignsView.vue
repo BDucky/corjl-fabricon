@@ -70,11 +70,9 @@
       <div class="mb-6">
         <DesignFilters
           :search-query="designsStore.searchQuery"
-          :design-type="designsStore.designType"
           :sort-by="designsStore.sortBy"
           :sort-direction="designsStore.sortDirection"
           @search="designsStore.setSearch"
-          @type-change="designsStore.setDesignTypeFilter"
           @sort-change="designsStore.setSort"
         />
       </div>

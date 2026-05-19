@@ -96,30 +96,34 @@
     </div>
 
     <template #footer>
-      <div class="w-full grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="w-full grid grid-cols-2 gap-2">
         <button
-          class="min-w-0 px-3 py-2.5 rounded-lg bg-surface-2 text-[var(--text-secondary)] text-sm hover:bg-surface-3 transition-colors disabled:opacity-40 truncate"
+          title="Cancel"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-surface-2 text-[var(--text-secondary)] text-sm hover:bg-surface-3 transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
           :disabled="store.isExporting"
           @click="$emit('close')"
         >
           Cancel
         </button>
         <button
-          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40 truncate"
+          title="Export all preset angles as a ZIP of PNGs"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
           :disabled="store.isExporting"
           @click="$emit('exportAllAngles')"
         >
           All Angles
         </button>
         <button
-          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40 truncate"
+          title="Export an animated turntable GIF"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
           :disabled="store.isExporting"
           @click="$emit('exportTurntableGif')"
         >
           Turntable GIF
         </button>
         <button
-          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-40 truncate"
+          title="Export the current view as a PNG"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
           :disabled="store.isExporting"
           @click="$emit('confirm')"
         >

@@ -14,21 +14,6 @@
       />
     </div>
 
-    <!-- Type filter pills -->
-    <div class="flex gap-1.5 flex-wrap">
-      <button
-        v-for="type in designTypes"
-        :key="type"
-        class="px-3 py-1.5 text-xs font-medium rounded-full transition-colors"
-        :class="designType === type
-          ? 'bg-primary text-white'
-          : 'bg-surface-1 text-[var(--text-secondary)] hover:bg-surface-2'"
-        @click="$emit('typeChange', type)"
-      >
-        {{ type }}
-      </button>
-    </div>
-
     <!-- Sort dropdown -->
     <select
       :value="sortValue"
@@ -46,22 +31,18 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { DesignType, DesignSortField, SortDirection } from '@/types/designs'
+import type { DesignSortField, SortDirection } from '@/types/designs'
 
 const props = defineProps<{
   searchQuery: string
-  designType: DesignType
   sortBy: DesignSortField
   sortDirection: SortDirection
 }>()
 
 const emit = defineEmits<{
   search: [query: string]
-  typeChange: [type: DesignType]
   sortChange: [field: DesignSortField, direction: SortDirection]
 }>()
-
-const designTypes: DesignType[] = ['COMPOSITION', 'PRODUCT']
 
 const sortValue = computed(() => `${props.sortBy}:${props.sortDirection}`)
 
