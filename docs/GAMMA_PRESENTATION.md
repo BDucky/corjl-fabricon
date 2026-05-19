@@ -488,7 +488,7 @@ The killer detail: a user's flat image becomes a correctly-placed texture on a c
 
 Capacitor wraps the same Vue web app into a native iOS/Android shell. Configuration in `capacitor.config.ts`:
 
-- **`appId: com.corjl.fabricon`**, **`appName: Fabricon`**, **`webDir: dist`**
+- **`appId: com.corjl.fabricon`** (legacy bundle ID, unchanged for app-store continuity), **`appName: Try-It-On`**, **`webDir: dist`**
 - **Live reload on device** — if `CAPACITOR_SERVER_URL` is set (read from `.env` without pulling in `dotenv`), the app loads from the Vite dev server over LAN. Unset = bundled `dist/` for TestFlight builds.
 - **Plugins wired:**
   - `@capacitor/camera` — `presentationStyle: 'popover'`, used by both design upload and the Imagine face capture

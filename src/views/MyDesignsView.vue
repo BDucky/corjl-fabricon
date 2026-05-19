@@ -5,7 +5,7 @@
       <div class="flex justify-between items-center mb-6">
         <div>
           <h1 class="text-2xl font-bold text-[var(--text-primary)] font-rubik">
-            {{ activeTab === 'imagine' ? 'Imagine' : 'My Designs' }}
+            {{ activeTab === 'imagine' ? 'Try-It-On' : 'My Designs' }}
           </h1>
           <p class="text-sm text-[var(--text-muted)] mt-1">
             {{
@@ -49,7 +49,7 @@
           </svg>
         </div>
         <h3 class="text-lg font-semibold text-[var(--text-primary)] mb-2">
-          No Imagine generations yet
+          No Try-It-On generations yet
         </h3>
         <p class="text-sm text-[var(--text-muted)] mb-6 text-center max-w-md">
           Combine a design, a 3D mockup, and a face photo to generate a personalized virtual try-on.
@@ -180,7 +180,7 @@ const designsStore = useDesignsStore()
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'designs', label: 'Designs' },
-  { id: 'imagine', label: 'Imagine' },
+  { id: 'imagine', label: 'Try-It-On' },
 ]
 
 const activeTab = computed<TabId>(() =>

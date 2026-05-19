@@ -6,7 +6,7 @@ A demo-prep reference. Goal: after reading this, you can answer almost any quest
 
 ## Part 1 — The One-Paragraph Mental Model
 
-Corjl try-it-on (codename `fabricon` on the iOS bundle) is a **Vue 3 single-page app** that uses **Three.js** for live 3D product mockups and **Capacitor** to ship the same web code as native iOS/Android apps. The backend is **AWS serverless**: **Cognito** authenticates users, **AppSync** exposes a GraphQL API backed by **DynamoDB**, and **S3** stores design files and AI-generated images. The signature feature, **"Imagine"**, takes a 3D mockup snapshot plus a face photo and calls **Replicate** to generate a personalized AI image — using **IDM-VTON** for garments (preserves the printed design AND the face) and **PuLID-Flux** for objects (preserves the face only; object route is currently hidden in the UI). The prompt is **auto-generated per-product** — users don't type one. Today the Replicate call is client-side via `CapacitorHttp` for prototyping; before public release it moves to a **Lambda** so the API key never leaves AWS, and the non-commercial models (IDM-VTON CC BY-NC-SA, Flux.1-dev) are replaced.
+Corjl try-it-on (iOS app name **Try-It-On**; legacy bundle ID `com.corjl.fabricon` kept for app-store continuity) is a **Vue 3 single-page app** that uses **Three.js** for live 3D product mockups and **Capacitor** to ship the same web code as native iOS/Android apps. The backend is **AWS serverless**: **Cognito** authenticates users, **AppSync** exposes a GraphQL API backed by **DynamoDB**, and **S3** stores design files and AI-generated images. The signature feature, **"Imagine"**, takes a 3D mockup snapshot plus a face photo and calls **Replicate** to generate a personalized AI image — using **IDM-VTON** for garments (preserves the printed design AND the face) and **PuLID-Flux** for objects (preserves the face only; object route is currently hidden in the UI). The prompt is **auto-generated per-product** — users don't type one. Today the Replicate call is client-side via `CapacitorHttp` for prototyping; before public release it moves to a **Lambda** so the API key never leaves AWS, and the non-commercial models (IDM-VTON CC BY-NC-SA, Flux.1-dev) are replaced.
 
 If you can say *that* paragraph confidently, you have the 80% answer for any high-level question.
 
@@ -64,8 +64,8 @@ Capacitor is a **native runtime** that wraps a `WKWebView` (iOS) or `WebView` (A
 **Why not Cordova/Ionic Classic?** Capacitor is the modern successor — better TypeScript support, drop-in for any web framework, owned by the Ionic team.
 
 ### Our Capacitor config (`capacitor.config.ts`)
-- `appId: com.corjl.fabricon` — reverse-DNS bundle ID, also the iOS bundle and Android package
-- `appName: Fabricon` — display name on home screen
+- `appId: com.corjl.fabricon` — reverse-DNS bundle ID, also the iOS bundle and Android package (legacy, kept for app-store continuity)
+- `appName: Try-It-On` — display name on home screen
 - `webDir: dist` — Vite's build output; this is what gets bundled into the native shell for App Store / Play Store
 - `server.url` — when `CAPACITOR_SERVER_URL` env var is set, the app **loads from the Vite dev server over LAN** instead of the bundled `dist/`. This gives you hot reload on the iPhone while developing. Unset for release builds.
 - `cleartext: true` (only when dev URL is set) — allows HTTP for local dev server

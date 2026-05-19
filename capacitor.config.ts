@@ -27,7 +27,7 @@ const devServerUrl = loadDevServerUrl()
 
 const config: CapacitorConfig = {
   appId: 'com.corjl.fabricon',
-  appName: 'Fabricon',
+  appName: 'Try-It-On',
   webDir: 'dist',
   server: {
     // When CAPACITOR_SERVER_URL is set, the app loads from that URL (Vite dev

@@ -25,7 +25,7 @@
           </button>
           <div class="flex-1 min-w-0 text-center">
             <h2 class="text-sm sm:text-base font-semibold text-[var(--text-primary)] truncate">
-              Create Imagine
+              Create Try-It-On
             </h2>
             <p class="text-[11px] sm:text-xs text-[var(--text-muted)] truncate">
               Step {{ step }} of 4 · {{ stepLabels[step - 1] }}
@@ -76,7 +76,7 @@
                 No designs with artwork yet
               </p>
               <p>
-                Imagine needs a design that has artwork on it. Open a design in
+                Try-It-On needs a design that has artwork on it. Open a design in
                 the editor and add something to it, then come back.
               </p>
             </div>
