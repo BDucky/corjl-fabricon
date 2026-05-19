@@ -68,6 +68,8 @@ const { exportImage, captureBlob } = useExporter(
   () => renderer.value,
   () => scene.value,
   () => camera.value,
+  () => controls.value,
+  () => currentModel.value,
 )
 useProductMaterial(() => currentModel.value)
 useDesignDrag(

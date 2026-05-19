@@ -518,6 +518,10 @@ async function captureMockup() {
       height: 1024,
       transparent: false,
       cleanBackground: true,
+      // For garments only: auto-zoom to the print area so IDM-VTON sees
+      // the design at high pixel density instead of a thumbnail-sized chest
+      // patch. Non-garment products keep the user's framing.
+      framePrintArea: isGarmentRoute.value,
     })
     if (!blob) return
     mockupBlob.value = blob
