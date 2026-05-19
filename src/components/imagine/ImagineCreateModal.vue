@@ -438,8 +438,15 @@ const canGenerate = computed(
 const productLabelText = computed(() => productLabel(viewerStore.activeModelId))
 const isGarmentRoute = computed(() => modelKind(viewerStore.activeModelId) === 'garment')
 
+// Only garment-route models (tshirt/polo/hoodie) are wired end-to-end
+// today. The object route (mug/tote/phone case/etc.) currently hits
+// Replicate cost guards on PuLID-Flux (e.g. 402 "must be less than or
+// equal to 20"). Hidden from the picker until the object pipeline is
+// rebuilt.
 const pickerModels = computed(() =>
-  viewerStore.allModels.filter((m) => m.bundled && !m.hidden),
+  viewerStore.allModels.filter(
+    (m) => m.bundled && !m.hidden && modelKind(m.id) === 'garment',
+  ),
 )
 
 // Imagine can only do something useful with a design that has actual artwork
@@ -506,6 +513,14 @@ async function onPickDesign(designId: string) {
     await viewerStore.setDesignFromUrl(thumbnailUrl)
   } catch {
     // Texture mapper still handles its own load; the viewer will render regardless.
+  }
+  // setDesignFromUrl's aspect-ratio matcher may pick a non-garment model
+  // (mug, phone case, etc.) that the Imagine flow can't ship to Replicate
+  // yet. Force a garment so the picker, generation route, and UI copy stay
+  // in sync.
+  if (modelKind(viewerStore.activeModelId) !== 'garment') {
+    const firstGarment = pickerModels.value[0]
+    if (firstGarment) viewerStore.selectModel(firstGarment.id)
   }
 }
 
