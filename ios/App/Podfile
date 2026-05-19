@@ -11,6 +11,8 @@ install! 'cocoapods', :disable_input_output_paths => true
 def capacitor_pods
   pod 'Capacitor', :path => '../../node_modules/.pnpm/@capacitor+ios@5.7.8_@capacitor+core@5.7.8/node_modules/@capacitor/ios'
   pod 'CapacitorCordova', :path => '../../node_modules/.pnpm/@capacitor+ios@5.7.8_@capacitor+core@5.7.8/node_modules/@capacitor/ios'
+  pod 'AparajitaCapacitorBiometricAuth', :path => '../../node_modules/.pnpm/@aparajita+capacitor-biometric-auth@6.0.1/node_modules/@aparajita/capacitor-biometric-auth'
+  pod 'AparajitaCapacitorSecureStorage', :path => '../../node_modules/.pnpm/@aparajita+capacitor-secure-storage@3.0.2/node_modules/@aparajita/capacitor-secure-storage'
   pod 'CapacitorApp', :path => '../../node_modules/.pnpm/@capacitor+app@5.0.8_@capacitor+core@5.7.8/node_modules/@capacitor/app'
   pod 'CapacitorCamera', :path => '../../node_modules/.pnpm/@capacitor+camera@5.0.10_@capacitor+core@5.7.8/node_modules/@capacitor/camera'
   pod 'CapacitorFilesystem', :path => '../../node_modules/.pnpm/@capacitor+filesystem@5.2.2_@capacitor+core@5.7.8/node_modules/@capacitor/filesystem'

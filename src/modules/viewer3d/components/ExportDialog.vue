@@ -43,12 +43,12 @@
         <div class="space-y-2">
           <div>
             <span class="text-[10px] text-[var(--text-muted)] block mb-1">Frames</span>
-            <div class="flex gap-1.5">
+            <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="fc in TURNTABLE_FRAME_COUNTS"
                 :key="fc.value"
                 :class="[
-                  'px-3 py-1.5 rounded-lg text-xs transition-all duration-fast',
+                  'px-3 py-1.5 rounded-lg text-xs transition-all duration-fast whitespace-nowrap',
                   store.turntableFrameCount === fc.value
                     ? 'bg-primary/20 text-primary-light border border-primary/30'
                     : 'bg-surface-2 text-[var(--text-secondary)] hover:bg-surface-3 border border-transparent',
@@ -61,12 +61,12 @@
           </div>
           <div>
             <span class="text-[10px] text-[var(--text-muted)] block mb-1">Speed</span>
-            <div class="flex gap-1.5">
+            <div class="flex flex-wrap gap-1.5">
               <button
                 v-for="sp in TURNTABLE_SPEEDS"
                 :key="sp.delay"
                 :class="[
-                  'px-3 py-1.5 rounded-lg text-xs transition-all duration-fast',
+                  'px-3 py-1.5 rounded-lg text-xs transition-all duration-fast whitespace-nowrap',
                   store.turntableFrameDelay === sp.delay
                     ? 'bg-primary/20 text-primary-light border border-primary/30'
                     : 'bg-surface-2 text-[var(--text-secondary)] hover:bg-surface-3 border border-transparent',
@@ -96,34 +96,40 @@
     </div>
 
     <template #footer>
-      <button
-        class="flex-1 px-4 py-2 rounded-lg bg-surface-2 text-[var(--text-secondary)] text-sm hover:bg-surface-3 transition-colors"
-        :disabled="store.isExporting"
-        @click="$emit('close')"
-      >
-        Cancel
-      </button>
-      <button
-        class="flex-1 px-4 py-2 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40"
-        :disabled="store.isExporting"
-        @click="$emit('exportAllAngles')"
-      >
-        All Angles (ZIP)
-      </button>
-      <button
-        class="flex-1 px-4 py-2 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40"
-        :disabled="store.isExporting"
-        @click="$emit('exportTurntableGif')"
-      >
-        Turntable GIF
-      </button>
-      <button
-        class="flex-1 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-40"
-        :disabled="store.isExporting"
-        @click="$emit('confirm')"
-      >
-        Export PNG
-      </button>
+      <div class="w-full grid grid-cols-2 gap-2">
+        <button
+          title="Cancel"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-surface-2 text-[var(--text-secondary)] text-sm hover:bg-surface-3 transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
+          :disabled="store.isExporting"
+          @click="$emit('close')"
+        >
+          Cancel
+        </button>
+        <button
+          title="Export all preset angles as a ZIP of PNGs"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
+          :disabled="store.isExporting"
+          @click="$emit('exportAllAngles')"
+        >
+          All Angles
+        </button>
+        <button
+          title="Export an animated turntable GIF"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary/20 text-primary-light text-sm font-medium hover:bg-primary/30 transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
+          :disabled="store.isExporting"
+          @click="$emit('exportTurntableGif')"
+        >
+          Turntable GIF
+        </button>
+        <button
+          title="Export the current view as a PNG"
+          class="min-w-0 px-3 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-dark transition-colors disabled:opacity-40 whitespace-nowrap overflow-hidden text-ellipsis"
+          :disabled="store.isExporting"
+          @click="$emit('confirm')"
+        >
+          Export PNG
+        </button>
+      </div>
     </template>
   </BaseModal>
 </template>

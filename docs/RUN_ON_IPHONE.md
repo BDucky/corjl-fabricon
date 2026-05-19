@@ -1,6 +1,6 @@
-# Running Fabricon on a Real iPhone (Dev Install)
+# Running Try-It-On on a Real iPhone (Dev Install)
 
-This is the day-to-day flow for installing the dev build of Fabricon on your own iPhone via Xcode. For TestFlight / App Store distribution, see `MOBILE_BUILD_GUIDE.md` §8.
+This is the day-to-day flow for installing the dev build of Try-It-On on your own iPhone via Xcode. For TestFlight / App Store distribution, see `MOBILE_BUILD_GUIDE.md` §8.
 
 ## One-time setup
 
@@ -52,7 +52,7 @@ Hit **⌘R** (or the Play button). Xcode will build, install to the phone, and l
 The first install with a given Apple ID will show "Untrusted Developer" when you tap the app icon. On the phone:
 
 - **Settings → General → VPN & Device Management** → your Apple ID under **Developer App** → **Trust**.
-- Open Fabricon again — it will launch.
+- Open Try-It-On again — it will launch.
 
 iOS will prompt for camera / photo-library permission the first time the app uses them. The permission strings come from `ios/App/App/Info.plist` (`NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`, `NSPhotoLibraryAddUsageDescription`).
 
@@ -101,7 +101,7 @@ Remove the `server.url` block (or comment it out) and re-run `npx cap sync ios` 
 
 ## Debugging on device
 
-- **Safari Web Inspector**: with the phone connected, open Safari on the Mac → **Develop → [your iPhone] → Fabricon**. You get full DevTools (console, network, elements) attached to the WebView.
+- **Safari Web Inspector**: with the phone connected, open Safari on the Mac → **Develop → [your iPhone] → Try-It-On**. You get full DevTools (console, network, elements) attached to the WebView.
 - Enable inspection on the phone first: **Settings → Safari → Advanced → Web Inspector → On**.
 
 ## Common gotchas

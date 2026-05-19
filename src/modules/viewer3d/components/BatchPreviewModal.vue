@@ -94,6 +94,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import BaseModal from '@components/ui/BaseModal.vue'
 import { useViewer3dStore } from '../store'
 import { BUNDLED_MODELS, MODEL_TEXTURE_DEFAULTS } from '../constants'
+
+// Only models flagged for general display. Hidden models (e.g. cardboard box,
+// any future WIP product) are filtered everywhere user-facing — they can be
+// opted back in by clearing the `hidden` flag in constants.ts.
+const VISIBLE_MODELS = BUNDLED_MODELS.filter((m) => !m.hidden)
 import { composeDesignCanvas } from '../utils/textureCompositor'
 import { computeUVBounds } from '../utils/computeUVBounds'
 import { generatePlanarUVs } from '../utils/generatePlanarUVs'
@@ -111,7 +116,7 @@ const emit = defineEmits<{
 const store = useViewer3dStore()
 
 const previews = ref<BatchPreviewItem[]>(
-  BUNDLED_MODELS.map((m) => ({
+  VISIBLE_MODELS.map((m) => ({
     modelId: m.id,
     modelName: m.name,
     imageDataUrl: null,
@@ -132,7 +137,7 @@ async function generate() {
   progress.value = 0
 
   // Reset previews
-  previews.value = BUNDLED_MODELS.map((m) => ({
+  previews.value = VISIBLE_MODELS.map((m) => ({
     modelId: m.id,
     modelName: m.name,
     imageDataUrl: null,
@@ -169,8 +174,8 @@ async function generate() {
 
   const gltfLoader = new GLTFLoader()
 
-  for (let i = 0; i < BUNDLED_MODELS.length; i++) {
-    const model = BUNDLED_MODELS[i]
+  for (let i = 0; i < VISIBLE_MODELS.length; i++) {
+    const model = VISIBLE_MODELS[i]
     previews.value[i].status = 'rendering'
 
     try {
@@ -297,7 +302,7 @@ async function generate() {
       previews.value[i].status = 'error'
     }
 
-    progress.value = Math.round(((i + 1) / BUNDLED_MODELS.length) * 100)
+    progress.value = Math.round(((i + 1) / VISIBLE_MODELS.length) * 100)
 
     // Yield to keep UI responsive
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()))

@@ -6,6 +6,7 @@ const LoginView = () => import('@/views/LoginView.vue')
 const SignupView = () => import('@/views/SignupView.vue')
 const EditorView = () => import('@/views/EditorView.vue')
 const MyDesignsView = () => import('@/views/MyDesignsView.vue')
+const SettingsView = () => import('@/views/SettingsView.vue')
 
 const routes: RouteRecordRaw[] = [
   {
@@ -35,6 +36,12 @@ const routes: RouteRecordRaw[] = [
     name: 'Editor',
     component: EditorView,
     meta: { requiresAuth: true, transition: 'zoom-fade' },
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: SettingsView,
+    meta: { requiresAuth: true, transition: 'page-fade' },
   },
   {
     path: '/:pathMatch(.*)*',

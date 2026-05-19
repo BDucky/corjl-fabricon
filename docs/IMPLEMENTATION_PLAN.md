@@ -1,4 +1,4 @@
-# Fabricon Implementation Plan
+# Corjl try-it-on Implementation Plan
 ## Next-Generation Design Platform
 
 **Project Status**: Phase 1 Complete ✓ | Phase 2: In Progress

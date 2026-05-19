@@ -1,8 +1,8 @@
-# Fabricon: Web-to-Mobile Build Guide (Capacitor)
+# Corjl try-it-on: Web-to-Mobile Build Guide (Capacitor)
 
 ## 1. Architecture Overview
 
-Fabricon uses **Capacitor** to wrap the Vue 3 web app into native iOS and Android shells. The architecture is:
+Corjl try-it-on uses **Capacitor** to wrap the Vue 3 web app into native iOS and Android shells. The architecture is:
 
 ```
 Vue 3 App (Web)
@@ -59,8 +59,8 @@ The project already has `capacitor.config.ts` configured:
 import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
-  appId: 'com.fabricon.app',
-  appName: 'Fabricon',
+  appId: 'com.corjl.fabricon',   // legacy bundle ID, kept for app-store continuity
+  appName: 'Try-It-On',
   webDir: 'dist',
   // ... plugins config
 }
@@ -150,15 +150,15 @@ Add to `ios/App/App/Info.plist` as needed:
 ```xml
 <!-- Camera access -->
 <key>NSCameraUsageDescription</key>
-<string>Fabricon needs camera access to capture photos for your designs</string>
+<string>Try-It-On needs camera access to capture photos for your designs</string>
 
 <!-- Photo library access -->
 <key>NSPhotoLibraryUsageDescription</key>
-<string>Fabricon needs photo library access to import images into your designs</string>
+<string>Try-It-On needs photo library access to import images into your designs</string>
 
 <!-- Photo library write access -->
 <key>NSPhotoLibraryAddUsageDescription</key>
-<string>Fabricon needs to save exported designs to your photo library</string>
+<string>Try-It-On needs to save exported designs to your photo library</string>
 ```
 
 #### App Icons
@@ -212,7 +212,7 @@ plugins: {
 
 ## 6. Safe Area Handling
 
-Fabricon's Tailwind config includes safe area utilities for notched devices.
+Corjl try-it-on's Tailwind config includes safe area utilities for notched devices.
 
 ### viewport-fit=cover
 

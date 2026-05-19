@@ -9,15 +9,15 @@
         />
 
         <!-- Modal Content -->
-        <div class="relative glass-panel--elevated w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div class="relative glass-panel--elevated w-full max-w-md max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <!-- Header -->
-          <div v-if="title || closeable" class="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
-            <h2 v-if="title" class="text-lg font-semibold text-[var(--text-primary)]">
+          <div v-if="title || closeable" class="flex items-center justify-between gap-2 p-4 sm:p-5 border-b border-[var(--border-subtle)]">
+            <h2 v-if="title" class="text-base sm:text-lg font-semibold text-[var(--text-primary)] min-w-0 truncate">
               {{ title }}
             </h2>
             <button
               v-if="closeable"
-              class="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-fast p-1 rounded-lg hover:bg-surface-2"
+              class="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors duration-fast p-1 rounded-lg hover:bg-surface-2 flex-shrink-0"
               @click="closeModal"
             >
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,12 +27,12 @@
           </div>
 
           <!-- Body -->
-          <div class="p-5">
+          <div class="p-4 sm:p-5">
             <slot />
           </div>
 
           <!-- Footer -->
-          <div v-if="$slots.footer" class="flex gap-3 p-5 border-t border-[var(--border-subtle)]">
+          <div v-if="$slots.footer" class="flex flex-wrap gap-2 sm:gap-3 p-4 sm:p-5 border-t border-[var(--border-subtle)]">
             <slot name="footer" />
           </div>
         </div>
