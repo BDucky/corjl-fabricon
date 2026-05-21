@@ -537,6 +537,11 @@ async function captureMockup() {
       // the design at high pixel density instead of a thumbnail-sized chest
       // patch. Non-garment products keep the user's framing.
       framePrintArea: isGarmentRoute.value,
+      // 0.55 leaves enough margin around the print area for the full garment
+      // (including sleeves) to stay in frame. The previous default (0.8)
+      // cropped the sleeves out and caused IDM-VTON to drift toward a
+      // sleeveless / tank-top look in the output.
+      frameFillRatio: isGarmentRoute.value ? 0.55 : undefined,
     })
     if (!blob) return
     mockupBlob.value = blob

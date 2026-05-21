@@ -23,28 +23,54 @@
 // the user explicitly opted to not constrain those.
 const FACE_IDENTITY = 'the exact same face, hair, and expression as the reference photo'
 const STYLE = 'photorealistic, sharp focus, natural lighting, simple neutral background'
+// Modesty clause: applied to every prompt so the model never produces a
+// revealing / sexualized output. Worded to constrain the torso (no exposed
+// chest, midriff, or cleavage) without restricting arms — short-sleeve
+// garments must still be allowed to show forearms naturally.
+const MODESTY = 'modestly dressed, fully clothed, family-friendly, respectful pose, torso fully covered, no exposed chest, no cleavage, no exposed midriff'
 const DESIGN_VISIBLE = 'with a bold colorful printed graphic design clearly visible facing the camera, covering most of the product surface'
 
 const TEMPLATES: Record<string, string> = {
   // The garment products route to IDM-VTON, not PuLID. These templates are only
-  // hit if the garment route is bypassed (manual override). Kept consistent.
-  tshirt: `Portrait of the same person wearing a cotton t-shirt ${DESIGN_VISIBLE} on the chest. ${FACE_IDENTITY}. ${STYLE}.`,
-  polo: `Portrait of the same person wearing a polo shirt ${DESIGN_VISIBLE} on the chest. ${FACE_IDENTITY}. ${STYLE}.`,
-  hoodie: `Portrait of the same person wearing a pull-over hoodie ${DESIGN_VISIBLE} on the front. ${FACE_IDENTITY}. ${STYLE}.`,
-  tanktop: `Portrait of the same person wearing a tank top ${DESIGN_VISIBLE} on the chest. ${FACE_IDENTITY}. ${STYLE}.`,
+  // hit if the garment route is bypassed (manual override). Kept consistent and
+  // explicit about sleeves so the model never drifts toward a sleeveless variant.
+  tshirt: `Portrait of the same person wearing a short-sleeve cotton t-shirt with full sleeves that cover the shoulders and upper arms ${DESIGN_VISIBLE} on the chest. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  polo: `Portrait of the same person wearing a short-sleeve collared polo shirt with full sleeves that cover the shoulders and upper arms ${DESIGN_VISIBLE} on the chest. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  hoodie: `Portrait of the same person wearing a long-sleeve pull-over hoodie that fully covers the torso and arms ${DESIGN_VISIBLE} on the front. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  tanktop: `Portrait of the same person wearing a tank top ${DESIGN_VISIBLE} on the chest. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
 
   // True face-route products.
-  totebag: `Photo of the same person holding a canvas tote bag at the side, the front face of the bag turned toward the camera, ${DESIGN_VISIBLE.replace('the product surface', 'the bag front')}. ${FACE_IDENTITY}. ${STYLE}.`,
-  phonecase: `Photo of the same person holding up a modern smartphone, the back of the phone case turned toward the camera, the phone case ${DESIGN_VISIBLE.replace('the product surface', 'the case back')}. ${FACE_IDENTITY}. ${STYLE}.`,
-  coffeemug: `Photo of the same person holding a ceramic coffee mug by the handle, the side of the mug turned toward the camera, the mug ${DESIGN_VISIBLE.replace('covering most of the product surface', 'wrapping around the mug side')}. ${FACE_IDENTITY}. ${STYLE}.`,
-  cardboardbox: `Photo of the same person holding a small cardboard product box, the printed face of the box turned toward the camera, the box ${DESIGN_VISIBLE.replace('the product surface', 'the box front')}. ${FACE_IDENTITY}. ${STYLE}.`,
-  standee: `Photo of the same person standing beside a flat cardboard standee display, the standee turned toward the camera, the standee ${DESIGN_VISIBLE.replace('the product surface', 'the standee surface')}. ${FACE_IDENTITY}. ${STYLE}.`,
+  totebag: `Photo of the same person holding a canvas tote bag at the side, the front face of the bag turned toward the camera, ${DESIGN_VISIBLE.replace('the product surface', 'the bag front')}. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  phonecase: `Photo of the same person holding up a modern smartphone, the back of the phone case turned toward the camera, the phone case ${DESIGN_VISIBLE.replace('the product surface', 'the case back')}. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  coffeemug: `Photo of the same person holding a ceramic coffee mug by the handle, the side of the mug turned toward the camera, the mug ${DESIGN_VISIBLE.replace('covering most of the product surface', 'wrapping around the mug side')}. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  cardboardbox: `Photo of the same person holding a small cardboard product box, the printed face of the box turned toward the camera, the box ${DESIGN_VISIBLE.replace('the product surface', 'the box front')}. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
+  standee: `Photo of the same person standing beside a flat cardboard standee display, the standee turned toward the camera, the standee ${DESIGN_VISIBLE.replace('the product surface', 'the standee surface')}. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`,
 }
 
 // Negative prompt — discourages the failure modes we saw in earlier tests:
-// face distortion, multiple people, blank/textless products, cartoon style.
+// face distortion, multiple people, blank/textless products, cartoon style,
+// plus an explicit modesty/safety block so the model never produces a
+// revealing or sexualized output (including accidental sleeveless drift on
+// garment templates).
 export function buildNegativePrompt(): string {
-  return 'blank product, plain unprinted surface, no design, distorted face, deformed face, multiple faces, multiple people, extra fingers, extra limbs, text watermark, logo overlay, low quality, blurry, cartoon, illustration, painting, sketch'
+  return [
+    // Modesty / safety — non-negotiable
+    'nude', 'nudity', 'partial nudity', 'topless', 'shirtless', 'undressed',
+    'underwear', 'lingerie', 'bra', 'panties', 'swimwear', 'bikini', 'cleavage',
+    'exposed chest', 'exposed breasts', 'bare chest', 'bare midriff', 'midriff',
+    'crop top', 'cropped top', 'low-cut neckline', 'plunging neckline',
+    'see-through', 'transparent clothing', 'wet clothing', 'revealing outfit',
+    'suggestive pose', 'sexualized', 'sexual', 'erotic', 'provocative',
+    // Sleeveless drift — the original tank-top failure mode
+    'sleeveless', 'tank top', 'spaghetti straps', 'strapless',
+    'bare shoulders', 'bare arms', 'one-shoulder',
+    // Original quality / identity failure modes
+    'blank product', 'plain unprinted surface', 'no design',
+    'distorted face', 'deformed face', 'multiple faces', 'multiple people',
+    'extra fingers', 'extra limbs',
+    'text watermark', 'logo overlay',
+    'low quality', 'blurry', 'cartoon', 'illustration', 'painting', 'sketch',
+  ].join(', ')
 }
 
 const PRODUCT_LABELS: Record<string, string> = {
@@ -82,20 +108,22 @@ export function modelKind(modelId: string | null | undefined): ModelKind {
 
 // Garment descriptions passed to IDM-VTON's `garment_des` input. Keep these
 // short and descriptive — the model uses them as a text-conditioning hint
-// alongside the visual garment input.
+// alongside the visual garment input. Sleeves are stated explicitly so
+// IDM-VTON does not drift toward a sleeveless variant when the source mockup
+// is tightly framed on the print area.
 const GARMENT_DESCRIPTIONS: Record<string, string> = {
-  tshirt: 'A short-sleeve cotton t-shirt with a printed graphic on the front, fits naturally on the upper body.',
-  polo: 'A short-sleeve polo shirt with a printed chest emblem, collared, fits naturally on the upper body.',
-  hoodie: 'A long-sleeve pull-over hoodie with a printed front graphic, fits naturally on the upper body.',
+  tshirt: 'A short-sleeve cotton t-shirt with full short sleeves that cover the shoulders and upper arms, with a printed graphic on the front. Modest fit, fully covers the torso.',
+  polo: 'A short-sleeve collared polo shirt with full short sleeves that cover the shoulders and upper arms, with a printed chest emblem. Modest fit, fully covers the torso.',
+  hoodie: 'A long-sleeve pull-over hoodie with full long sleeves that cover the arms to the wrist, with a printed front graphic. Modest fit, fully covers the torso.',
   tanktop: 'A sleeveless tank top with a printed front graphic, fits naturally on the upper body.',
 }
 
 export function buildGarmentDescription(modelId: string | null | undefined): string {
-  if (!modelId) return 'A printed upper-body garment.'
-  return GARMENT_DESCRIPTIONS[modelId] ?? 'A printed upper-body garment.'
+  if (!modelId) return 'A modest printed upper-body garment with full sleeves that cover the shoulders and arms.'
+  return GARMENT_DESCRIPTIONS[modelId] ?? 'A modest printed upper-body garment with full sleeves that cover the shoulders and arms.'
 }
 
-const FALLBACK = `Photo of the same person presenting a custom-printed product ${DESIGN_VISIBLE}. ${FACE_IDENTITY}. ${STYLE}.`
+const FALLBACK = `Photo of the same person presenting a custom-printed product ${DESIGN_VISIBLE}. ${FACE_IDENTITY}. ${MODESTY}. ${STYLE}.`
 
 export function buildPrompt(modelId: string | null | undefined): string {
   if (!modelId) return FALLBACK

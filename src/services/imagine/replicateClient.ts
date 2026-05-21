@@ -26,6 +26,11 @@ const POLL_TIMEOUT_MS = 5 * 60 * 1000
 
 const DEFAULT_FACE_MODEL = 'bytedance/flux-pulid'
 const DEFAULT_GARMENT_MODEL = 'cuuupid/idm-vton'
+// CLIP-based binary NSFW classifier — used as a safety net on the generated
+// output before showing it to the user. Returns a label + confidence; we
+// reject anything classified `nsfw` above the threshold.
+const DEFAULT_MODERATION_MODEL = 'falcons-ai/nsfw_image_detection'
+const NSFW_REJECT_THRESHOLD = 0.5
 
 export type GenerateInput = {
   modelId: string | null
@@ -182,6 +187,65 @@ async function generateFace(token: string, modelId: string | null, face: string)
   return pollToCompletion(token, pending)
 }
 
+// User-visible error message when the NSFW classifier flags the output.
+// Phrased to be reassuring rather than accusatory — the user did nothing
+// wrong; the AI produced something we won't show.
+export const NSFW_REJECTED_MESSAGE =
+  "We couldn't generate an appropriate image this time. Please try again — try a wider photo with your shoulders and chest in frame."
+
+// Calls the NSFW classifier on the generated image URL. Returns the
+// classifier's nsfw confidence in [0, 1]. Throws on network / API errors so
+// the caller can decide whether to fail open or closed.
+async function classifyNsfw(token: string, imageUrl: string): Promise<number> {
+  const slug = envModel('VITE_REPLICATE_MODEL_MODERATION', DEFAULT_MODERATION_MODEL)
+  const version = await resolveLatestVersion(token, slug)
+  const pending = await createPrediction(token, version, { image: imageUrl })
+  const start = Date.now()
+  let current = pending
+  while (current.status === 'starting' || current.status === 'processing') {
+    if (Date.now() - start > 60_000) {
+      throw new Error('Moderation check timed out.')
+    }
+    await sleep(POLL_INTERVAL_MS)
+    current = await fetchPrediction(token, current.id)
+  }
+  if (current.status !== 'succeeded') {
+    throw new Error(`Moderation ${current.status}${current.error ? `: ${current.error}` : '.'}`)
+  }
+  return extractNsfwScore(current.output)
+}
+
+// Defensive parser — the classifier may return a string label, a single
+// {label,score} object, or a list of {label,score} objects. We normalize all
+// of those into a single nsfw probability in [0, 1].
+function extractNsfwScore(output: Prediction['output']): number {
+  if (output == null) return 0
+  type Labeled = { label?: string; score?: number; confidences?: Labeled[] }
+  const isNsfwLabel = (label: string) =>
+    /\b(nsfw|porn|sexual|explicit|unsafe)\b/i.test(label)
+
+  if (typeof output === 'string') return isNsfwLabel(output) ? 1 : 0
+
+  const flatten = (value: unknown): Labeled[] => {
+    if (Array.isArray(value)) return value.flatMap(flatten)
+    if (value && typeof value === 'object') {
+      const v = value as Labeled
+      if (v.confidences) return flatten(v.confidences)
+      return [v]
+    }
+    return []
+  }
+  const items = flatten(output)
+  let max = 0
+  for (const item of items) {
+    if (typeof item.label === 'string' && isNsfwLabel(item.label)) {
+      const score = typeof item.score === 'number' ? item.score : 1
+      if (score > max) max = score
+    }
+  }
+  return max
+}
+
 export async function generateImage({
   modelId,
   mockupImage,
@@ -193,13 +257,27 @@ export async function generateImage({
     blobToDataUri(faceImage),
   ])
 
+  let imageUrl: string
   if (modelKind(modelId) === 'garment' && modelId) {
     // Single-stage IDM-VTON: pass the user's actual photo as `human_img`. The
     // model preserves their real face pixels (PuLID body-synth would re-draw
     // the face and lose fidelity). Requires the user's chest to be in frame —
     // the Step 3 UI guides them to take a wider shot.
-    return generateGarment(token, modelId, mockupUri, faceUri)
+    imageUrl = await generateGarment(token, modelId, mockupUri, faceUri)
+  } else {
+    imageUrl = await generateFace(token, modelId, faceUri)
   }
 
-  return generateFace(token, modelId, faceUri)
+  // Safety gate — run the NSFW classifier before returning the URL. Failing
+  // closed (treating a moderation error as unsafe) is intentional: the user
+  // explicitly asked for a strong modesty guarantee on outputs.
+  const nsfwScore = await classifyNsfw(token, imageUrl).catch((e: unknown) => {
+    const detail = e instanceof Error ? e.message : 'unknown error'
+    throw new Error(`${NSFW_REJECTED_MESSAGE} (safety check failed: ${detail})`)
+  })
+  if (nsfwScore >= NSFW_REJECT_THRESHOLD) {
+    throw new Error(NSFW_REJECTED_MESSAGE)
+  }
+
+  return imageUrl
 }

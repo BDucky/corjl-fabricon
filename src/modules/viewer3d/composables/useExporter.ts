@@ -18,6 +18,7 @@ export function useExporter(
     transparent?: boolean
     cleanBackground?: boolean
     framePrintArea?: boolean
+    frameFillRatio?: number
   }): Promise<Blob | null> {
     const r = renderer()
     const s = scene()
@@ -29,6 +30,7 @@ export function useExporter(
     const transparent = opts?.transparent ?? store.exportSettings.transparentBackground
     const cleanBackground = opts?.cleanBackground ?? false
     const shouldFrame = opts?.framePrintArea ?? false
+    const frameFillRatio = opts?.frameFillRatio
 
     const prevSize = new THREE.Vector2()
     r.getSize(prevSize)
@@ -74,6 +76,7 @@ export function useExporter(
           camera: cam,
           controls: ctrl,
           aspect: width / height,
+          fillRatio: frameFillRatio,
         })
       }
     }
