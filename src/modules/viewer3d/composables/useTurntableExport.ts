@@ -40,13 +40,19 @@ export function useTurntableExport(
     // Save current renderer state
     const prevSize = new THREE.Vector2()
     r.getSize(prevSize)
+    const prevPixelRatio = r.getPixelRatio()
     const prevCamPos = cam.position.clone()
     const prevTarget = ctrl.target.clone()
     const prevClearAlpha = r.getClearAlpha()
     const prevClearColor = new THREE.Color()
     r.getClearColor(prevClearColor)
 
-    // Set export size
+    // Force pixelRatio=1 so the drawing buffer matches width×height exactly —
+    // gl.readPixels(0, 0, width, height) below assumes a 1:1 buffer. On retina
+    // screens the live viewer runs at devicePixelRatio≥2, which would make the
+    // buffer 2× larger than requested and the readPixels call would only
+    // capture the bottom-left quadrant of the rendered frame.
+    r.setPixelRatio(1)
     r.setSize(width, height)
     cam.aspect = width / height
     cam.updateProjectionMatrix()
@@ -102,6 +108,7 @@ export function useTurntableExport(
     cam.position.copy(prevCamPos)
     ctrl.target.copy(prevTarget)
     ctrl.update()
+    r.setPixelRatio(prevPixelRatio)
     r.setSize(prevSize.x, prevSize.y)
     cam.aspect = prevSize.x / prevSize.y
     cam.updateProjectionMatrix()
